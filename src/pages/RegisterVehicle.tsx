@@ -11,6 +11,7 @@ type SessionEntry = { id: number; plateNumber: string; publicCode: string }
 export function RegisterVehicle() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState("")
+  const [scanned, setScanned] = useState(false)
   const [imageUrl, setImageUrl] = useState("")
   const [plateNumber, setPlateNumber] = useState("")
   const [confidence, setConfidence] = useState("")
@@ -25,26 +26,31 @@ export function RegisterVehicle() {
     if (!file) return
 
     setPreview(URL.createObjectURL(file))
+    setScanned(false)
     setImageUrl("")
+    setPlateNumber("")
     setConfidence("")
     setPlateState("")
 
     scan.mutate(file, {
       onSuccess: (result) => {
-        if (result.plateNumber) setPlateNumber(result.plateNumber)
+        setPlateNumber(result.plateNumber)
         setConfidence(result.confidence)
         setPlateState(result.plateState)
         setImageUrl(result.imageUrl)
+        setScanned(true)
       },
     })
   }
 
   function reset() {
     setPreview("")
+    setScanned(false)
     setImageUrl("")
     setPlateNumber("")
     setConfidence("")
     setPlateState("")
+    scan.reset()
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
@@ -103,47 +109,55 @@ export function RegisterVehicle() {
         )}
       </div>
 
-      <form onSubmit={submit} className="mt-4 space-y-4">
-        <div>
-          <div className="flex items-center justify-between">
-            <label className="font-mono text-xs uppercase tracking-wider text-ink-faint">
-              Plate number
-            </label>
-            {scan.isPending ? (
-              <span className="font-mono text-xs text-ink-faint">reading…</span>
-            ) : (
-              confidence && <ConfidenceTag confidence={confidence} />
-            )}
-          </div>
-          <Input
-            value={plateNumber}
-            onChange={(event) => setPlateNumber(event.target.value)}
-            placeholder="LND-123-XY"
-            className="mt-1.5"
-          />
-          {plateState && <p className="mt-1 font-mono text-xs text-ink-faint">state: {plateState}</p>}
-        </div>
+      {scan.isPending && (
+        <p className="mt-4 font-mono text-sm text-ink-faint">reading plate…</p>
+      )}
 
-        {register.isError && (
-          <p className="text-sm text-danfo-deep">{(register.error as Error).message}</p>
-        )}
-
-        <div className="flex gap-2">
-          <Button type="submit" disabled={!plateNumber.trim() || register.isPending}>
-            {register.isPending ? "Registering…" : "Register"}
+      {scan.isError && (
+        <div className="mt-4">
+          <p className="text-sm text-danfo-deep">Couldn't read the image. Try again.</p>
+          <Button type="button" variant="ghost" size="sm" className="mt-2" onClick={() => fileInputRef.current?.click()}>
+            Retake
           </Button>
-          {preview && (
+        </div>
+      )}
+
+      {scanned && (
+        <form onSubmit={submit} className="mt-4 space-y-4">
+          <div>
+            <div className="flex items-center justify-between">
+              <label className="font-mono text-xs uppercase tracking-wider text-ink-faint">
+                Plate number
+              </label>
+              {confidence && <ConfidenceTag confidence={confidence} />}
+            </div>
+            <Input
+              autoFocus
+              value={plateNumber}
+              onChange={(event) => setPlateNumber(event.target.value)}
+              placeholder="LND-123-XY"
+              className="mt-1.5"
+            />
+            {plateState && <p className="mt-1 font-mono text-xs text-ink-faint">state: {plateState}</p>}
+          </div>
+
+          {register.isError && (
+            <p className="text-sm text-danfo-deep">{(register.error as Error).message}</p>
+          )}
+
+          <div className="flex gap-2">
+            <Button type="submit" disabled={!plateNumber.trim() || register.isPending}>
+              {register.isPending ? "Registering…" : "Register"}
+            </Button>
             <Button type="button" variant="ghost" onClick={() => fileInputRef.current?.click()}>
               Retake
             </Button>
-          )}
-          {(preview || plateNumber) && (
             <Button type="button" variant="ghost" onClick={reset}>
               Clear
             </Button>
-          )}
-        </div>
-      </form>
+          </div>
+        </form>
+      )}
 
       {registered.length > 0 && (
         <div className="mt-10">
