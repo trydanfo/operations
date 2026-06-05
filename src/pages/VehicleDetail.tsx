@@ -1,6 +1,14 @@
+import { useState, type FormEvent } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
-import { useVehicle, useUpdateVehicleStatus, type VehicleStatus } from "../lib/vehicles"
+import {
+  useVehicle,
+  useUpdateVehicle,
+  useDeleteVehicle,
+  type VehicleStatus,
+} from "../lib/vehicles"
 import { Button } from "../components/ui/Button"
+import { Input } from "../components/ui/Input"
+import { Dialog } from "../components/ui/Dialog"
 import { StatusBadge } from "../components/StatusBadge"
 import { VehicleQR, vehicleScanUrl } from "../components/VehicleQR"
 
@@ -10,7 +18,12 @@ export function VehicleDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data: vehicle, isLoading } = useVehicle(id ?? "")
-  const updateStatus = useUpdateVehicleStatus()
+  const updateVehicle = useUpdateVehicle()
+  const deleteVehicle = useDeleteVehicle()
+
+  const [editingPlate, setEditingPlate] = useState(false)
+  const [plateDraft, setPlateDraft] = useState("")
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   if (isLoading) {
     return <p className="font-mono text-sm text-ink-faint">loading…</p>
@@ -21,17 +34,67 @@ export function VehicleDetail() {
 
   const otherStatuses = allStatuses.filter((status) => status !== vehicle.status)
 
+  function savePlate(event: FormEvent) {
+    event.preventDefault()
+    const next = plateDraft.trim()
+    if (!next || next === vehicle!.plateNumber) {
+      setEditingPlate(false)
+      return
+    }
+    updateVehicle.mutate(
+      { id: vehicle!.id, plateNumber: next },
+      { onSuccess: () => setEditingPlate(false) },
+    )
+  }
+
+  function confirmDelete() {
+    deleteVehicle.mutate(vehicle!.id, { onSuccess: () => navigate("/vehicles") })
+  }
+
   return (
     <div>
-      <Link to="/" className="font-mono text-xs text-ink-faint hover:text-ink">
+      <Link to="/vehicles" className="font-mono text-xs text-ink-faint hover:text-ink">
         ← vehicles
       </Link>
 
       <div className="mt-4 grid gap-10 sm:grid-cols-2">
         <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-ink">
-            {vehicle.plateNumber}
-          </h1>
+          {editingPlate ? (
+            <form onSubmit={savePlate} className="flex items-center gap-2">
+              <Input
+                autoFocus
+                value={plateDraft}
+                onChange={(event) => setPlateDraft(event.target.value)}
+                className="max-w-[12rem]"
+              />
+              <Button type="submit" size="sm" disabled={updateVehicle.isPending}>
+                Save
+              </Button>
+              <Button type="button" size="sm" variant="ghost" onClick={() => setEditingPlate(false)}>
+                Cancel
+              </Button>
+            </form>
+          ) : (
+            <div className="flex items-center gap-3">
+              <h1 className="font-display text-2xl font-bold tracking-tight text-ink">
+                {vehicle.plateNumber}
+              </h1>
+              <button
+                onClick={() => {
+                  setPlateDraft(vehicle.plateNumber)
+                  setEditingPlate(true)
+                }}
+                className="font-mono text-xs text-ink-faint hover:text-danfo-deep"
+              >
+                edit
+              </button>
+            </div>
+          )}
+
+          {updateVehicle.isError && (
+            <p className="mt-2 text-sm text-danfo-deep">{(updateVehicle.error as Error).message}</p>
+          )}
+
           <div className="mt-2">
             <StatusBadge status={vehicle.status} />
           </div>
@@ -57,12 +120,21 @@ export function VehicleDetail() {
                 key={status}
                 variant="outline"
                 size="sm"
-                disabled={updateStatus.isPending}
-                onClick={() => updateStatus.mutate({ id: vehicle.id, status })}
+                disabled={updateVehicle.isPending}
+                onClick={() => updateVehicle.mutate({ id: vehicle.id, status })}
               >
                 Mark {status}
               </Button>
             ))}
+          </div>
+
+          <div className="mt-10 border-t border-line pt-4">
+            <button
+              onClick={() => setConfirmingDelete(true)}
+              className="text-sm text-ink-faint transition-colors hover:text-red-600"
+            >
+              Delete vehicle
+            </button>
           </div>
         </div>
 
@@ -77,6 +149,27 @@ export function VehicleDetail() {
           </Button>
         </div>
       </div>
+
+      <Dialog
+        open={confirmingDelete}
+        onOpenChange={setConfirmingDelete}
+        title="Delete this vehicle?"
+        description="This permanently removes the vehicle and its public code. Any sticker already printed for it will stop resolving. This cannot be undone."
+      >
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" onClick={() => setConfirmingDelete(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="outline"
+            disabled={deleteVehicle.isPending}
+            onClick={confirmDelete}
+            className="border-red-600/30 text-red-600 hover:bg-red-600 hover:text-paper"
+          >
+            {deleteVehicle.isPending ? "Deleting…" : "Delete permanently"}
+          </Button>
+        </div>
+      </Dialog>
     </div>
   )
 }

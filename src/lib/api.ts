@@ -35,4 +35,27 @@ export async function api<TResponse>(
   return (await response.json()) as TResponse;
 }
 
+export async function apiUpload<TResponse>(
+  path: string,
+  formData: FormData,
+): Promise<TResponse> {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    let message = response.statusText;
+    try {
+      const body = await response.json();
+      message = body.error ?? message;
+    } catch {
+      // NOTE: error body was not json
+    }
+    throw new ApiError(response.status, message);
+  }
+  return (await response.json()) as TResponse;
+}
+
 export const apiBase = apiBaseUrl;

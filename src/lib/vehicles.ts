@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { api } from "./api"
+import { api, apiUpload } from "./api"
 
 export type VehicleStatus = "active" | "suspended" | "retired"
 
@@ -27,29 +27,60 @@ export function useVehicle(id: string) {
   })
 }
 
-export function useRegisterVehicle() {
-  const queryClient = useQueryClient()
+function invalidateVehicleViews(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: ["vehicles"] })
+  queryClient.invalidateQueries({ queryKey: ["stats"] })
+  queryClient.invalidateQueries({ queryKey: ["activities"] })
+}
+
+export type PlateScan = {
+  plateNumber: string
+  confidence: string
+  plateState: string
+  imageUrl: string
+}
+
+export function useScanPlate() {
   return useMutation({
-    mutationFn: (plateNumber: string) =>
-      api<Vehicle>("/api/v1/ops/vehicles", {
-        method: "POST",
-        body: JSON.stringify({ plateNumber }),
-      }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["vehicles"] }),
+    mutationFn: (image: File) => {
+      const form = new FormData()
+      form.append("image", image)
+      return apiUpload<PlateScan>("/api/v1/ops/vehicles/scan", form)
+    },
   })
 }
 
-export function useUpdateVehicleStatus() {
+export function useRegisterVehicle() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, status }: { id: number; status: VehicleStatus }) =>
+    mutationFn: ({ plateNumber, imageUrl }: { plateNumber: string; imageUrl?: string }) =>
+      api<Vehicle>("/api/v1/ops/vehicles", {
+        method: "POST",
+        body: JSON.stringify({ plateNumber, imageUrl }),
+      }),
+    onSuccess: () => invalidateVehicleViews(queryClient),
+  })
+}
+
+export function useUpdateVehicle() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, plateNumber, status }: { id: number; plateNumber?: string; status?: VehicleStatus }) =>
       api<Vehicle>(`/api/v1/ops/vehicles/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ plateNumber, status }),
       }),
     onSuccess: (vehicle) => {
-      queryClient.invalidateQueries({ queryKey: ["vehicles"] })
+      invalidateVehicleViews(queryClient)
       queryClient.invalidateQueries({ queryKey: ["vehicle", String(vehicle.id)] })
     },
+  })
+}
+
+export function useDeleteVehicle() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api(`/api/v1/ops/vehicles/${id}`, { method: "DELETE" }),
+    onSuccess: () => invalidateVehicleViews(queryClient),
   })
 }
