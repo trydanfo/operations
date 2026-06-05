@@ -69,6 +69,7 @@ export function useScanPlate() {
       form.append("image", image)
       return apiUpload<PlateScan>("/api/v1/ops/vehicles/scan", form)
     },
+    retry: 1,
   })
 }
 

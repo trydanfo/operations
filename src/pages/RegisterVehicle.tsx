@@ -9,6 +9,32 @@ import { cn } from "../lib/cn"
 
 type SessionEntry = { id: number; plateNumber: string; publicCode: string }
 
+// NOTE: phone photos are several MB; a plate reads fine at ~1280px and this cuts upload, OCR, and storage cost
+async function downscaleImage(file: File, maxDimension: number): Promise<File> {
+  try {
+    const bitmap = await createImageBitmap(file)
+    const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height))
+    if (scale === 1) {
+      bitmap.close()
+      return file
+    }
+    const canvas = document.createElement("canvas")
+    canvas.width = Math.round(bitmap.width * scale)
+    canvas.height = Math.round(bitmap.height * scale)
+    const context = canvas.getContext("2d")
+    if (!context) return file
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    bitmap.close()
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", 0.85),
+    )
+    if (!blob) return file
+    return new File([blob], "plate.jpg", { type: "image/jpeg" })
+  } catch {
+    return file
+  }
+}
+
 export function RegisterVehicle() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState("")
@@ -27,18 +53,20 @@ export function RegisterVehicle() {
   const plateLookup = useVehicleByPlate(debouncedPlate)
   const existing = plateLookup.data?.existingVehicle ?? null
 
-  function onPickImage(event: ChangeEvent<HTMLInputElement>) {
+  async function onPickImage(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     if (!file) return
 
-    setPreview(URL.createObjectURL(file))
+    const optimized = await downscaleImage(file, 1280)
+
+    setPreview(URL.createObjectURL(optimized))
     setScanned(false)
     setImageUrl("")
     setPlateNumber("")
     setConfidence("")
     setPlateState("")
 
-    scan.mutate(file, {
+    scan.mutate(optimized, {
       onSuccess: (result) => {
         setPlateNumber(result.plateNumber)
         setConfidence(result.confidence)
