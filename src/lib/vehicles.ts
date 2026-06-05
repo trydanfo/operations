@@ -9,7 +9,9 @@ export type Vehicle = {
   updatedAt: string
   publicCode: string
   plateNumber: string
+  plateState: string
   status: VehicleStatus
+  imageUrl: string
 }
 
 export function useVehicles(search: string) {
@@ -53,10 +55,18 @@ export function useScanPlate() {
 export function useRegisterVehicle() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ plateNumber, imageUrl }: { plateNumber: string; imageUrl?: string }) =>
+    mutationFn: ({
+      plateNumber,
+      plateState,
+      imageUrl,
+    }: {
+      plateNumber: string
+      plateState?: string
+      imageUrl?: string
+    }) =>
       api<Vehicle>("/api/v1/ops/vehicles", {
         method: "POST",
-        body: JSON.stringify({ plateNumber, imageUrl }),
+        body: JSON.stringify({ plateNumber, plateState, imageUrl }),
       }),
     onSuccess: () => invalidateVehicleViews(queryClient),
   })

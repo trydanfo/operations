@@ -60,7 +60,7 @@ export function RegisterVehicle() {
     if (!plate) return
 
     register.mutate(
-      { plateNumber: plate, imageUrl: imageUrl || undefined },
+      { plateNumber: plate, plateState: plateState || undefined, imageUrl: imageUrl || undefined },
       {
         onSuccess: (vehicle: Vehicle) => {
           setRegistered((current) => [

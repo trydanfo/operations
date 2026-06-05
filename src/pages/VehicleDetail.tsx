@@ -24,6 +24,7 @@ export function VehicleDetail() {
   const [editingPlate, setEditingPlate] = useState(false)
   const [plateDraft, setPlateDraft] = useState("")
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [showImage, setShowImage] = useState(false)
 
   if (isLoading) {
     return <p className="font-mono text-sm text-ink-faint">loading…</p>
@@ -108,11 +109,35 @@ export function VehicleDetail() {
               <dt className="text-ink-faint">Scan URL</dt>
               <dd className="truncate font-mono text-ink-soft">{vehicleScanUrl(vehicle.publicCode)}</dd>
             </div>
+            {vehicle.plateState && (
+              <div className="flex items-center justify-between border-b border-line pb-2">
+                <dt className="text-ink-faint">State</dt>
+                <dd className="text-ink-soft">{vehicle.plateState}</dd>
+              </div>
+            )}
             <div className="flex items-center justify-between border-b border-line pb-2">
               <dt className="text-ink-faint">Registered</dt>
               <dd className="text-ink-soft">{new Date(vehicle.createdAt).toLocaleDateString()}</dd>
             </div>
           </dl>
+
+          {vehicle.imageUrl && (
+            <div className="mt-6">
+              <button
+                onClick={() => setShowImage((value) => !value)}
+                className="font-mono text-xs text-ink-faint transition-colors hover:text-ink"
+              >
+                {showImage ? "▾ hide plate photo" : "▸ show plate photo"}
+              </button>
+              {showImage && (
+                <img
+                  src={vehicle.imageUrl}
+                  alt="plate"
+                  className="mt-3 w-full max-w-sm rounded-[var(--radius)] border border-line"
+                />
+              )}
+            </div>
+          )}
 
           <div className="mt-6 flex flex-wrap gap-2">
             {otherStatuses.map((status) => (
