@@ -43,6 +43,7 @@ export function RegisterVehicle() {
   const [plateNumber, setPlateNumber] = useState("")
   const [confidence, setConfidence] = useState("")
   const [plateState, setPlateState] = useState("")
+  const [ocrError, setOcrError] = useState("")
   const [registered, setRegistered] = useState<SessionEntry[]>([])
 
   const navigate = useNavigate()
@@ -65,6 +66,7 @@ export function RegisterVehicle() {
     setPlateNumber("")
     setConfidence("")
     setPlateState("")
+    setOcrError("")
 
     scan.mutate(optimized, {
       onSuccess: (result) => {
@@ -72,6 +74,7 @@ export function RegisterVehicle() {
         setConfidence(result.confidence)
         setPlateState(result.plateState)
         setImageUrl(result.imageUrl)
+        setOcrError(result.ocrError ?? "")
         setScanned(true)
       },
     })
@@ -84,6 +87,7 @@ export function RegisterVehicle() {
     setPlateNumber("")
     setConfidence("")
     setPlateState("")
+    setOcrError("")
     scan.reset()
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
@@ -172,6 +176,15 @@ export function RegisterVehicle() {
             />
             {plateState && <p className="mt-1 font-mono text-xs text-ink-faint">state: {plateState}</p>}
           </div>
+
+          {ocrError && (
+            <div className="rounded-[var(--radius)] border border-red-600/30 bg-red-600/5 p-3">
+              <p className="text-sm text-ink">
+                Couldn't read the plate automatically — enter it manually.
+              </p>
+              <p className="mt-1 font-mono text-xs text-red-600">{ocrError}</p>
+            </div>
+          )}
 
           {existing && (
             <div className="rounded-[var(--radius)] border border-danfo/50 bg-danfo/10 p-3">

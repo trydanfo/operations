@@ -59,6 +59,7 @@ export type PlateScan = {
   confidence: string
   plateState: string
   imageUrl: string
+  ocrError?: string
   existingVehicle?: ExistingVehicle
 }
 
