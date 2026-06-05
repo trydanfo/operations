@@ -35,11 +35,19 @@ function invalidateVehicleViews(queryClient: ReturnType<typeof useQueryClient>) 
   queryClient.invalidateQueries({ queryKey: ["activities"] })
 }
 
+export type ExistingVehicle = {
+  id: number
+  publicCode: string
+  plateNumber: string
+  status: VehicleStatus
+}
+
 export type PlateScan = {
   plateNumber: string
   confidence: string
   plateState: string
   imageUrl: string
+  existingVehicle?: ExistingVehicle
 }
 
 export function useScanPlate() {

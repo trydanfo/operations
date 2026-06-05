@@ -1,7 +1,12 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { Camera } from "lucide-react"
-import { useScanPlate, useRegisterVehicle, type Vehicle } from "../lib/vehicles"
+import {
+  useScanPlate,
+  useRegisterVehicle,
+  type Vehicle,
+  type ExistingVehicle,
+} from "../lib/vehicles"
 import { Button } from "../components/ui/Button"
 import { Input } from "../components/ui/Input"
 import { cn } from "../lib/cn"
@@ -16,8 +21,10 @@ export function RegisterVehicle() {
   const [plateNumber, setPlateNumber] = useState("")
   const [confidence, setConfidence] = useState("")
   const [plateState, setPlateState] = useState("")
+  const [existing, setExisting] = useState<ExistingVehicle | null>(null)
   const [registered, setRegistered] = useState<SessionEntry[]>([])
 
+  const navigate = useNavigate()
   const scan = useScanPlate()
   const register = useRegisterVehicle()
 
@@ -32,12 +39,15 @@ export function RegisterVehicle() {
     setConfidence("")
     setPlateState("")
 
+    setExisting(null)
+
     scan.mutate(file, {
       onSuccess: (result) => {
         setPlateNumber(result.plateNumber)
         setConfidence(result.confidence)
         setPlateState(result.plateState)
         setImageUrl(result.imageUrl)
+        setExisting(result.existingVehicle ?? null)
         setScanned(true)
       },
     })
@@ -50,6 +60,7 @@ export function RegisterVehicle() {
     setPlateNumber("")
     setConfidence("")
     setPlateState("")
+    setExisting(null)
     scan.reset()
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
@@ -134,12 +145,32 @@ export function RegisterVehicle() {
             <Input
               autoFocus
               value={plateNumber}
-              onChange={(event) => setPlateNumber(event.target.value)}
+              onChange={(event) => {
+                setPlateNumber(event.target.value)
+                if (existing) setExisting(null)
+              }}
               placeholder="LND-123-XY"
               className="mt-1.5"
             />
             {plateState && <p className="mt-1 font-mono text-xs text-ink-faint">state: {plateState}</p>}
           </div>
+
+          {existing && (
+            <div className="rounded-[var(--radius)] border border-danfo/50 bg-danfo/10 p-3">
+              <p className="text-sm text-ink">
+                <span className="font-medium">Already registered.</span> This plate is on file as{" "}
+                <span className="font-mono">{existing.plateNumber}</span> · {existing.publicCode}.
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                className="mt-2.5"
+                onClick={() => navigate(`/vehicles/${existing.id}`)}
+              >
+                Open vehicle page
+              </Button>
+            </div>
+          )}
 
           {register.isError && (
             <p className="text-sm text-danfo-deep">{(register.error as Error).message}</p>
