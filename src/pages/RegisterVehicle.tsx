@@ -44,6 +44,7 @@ export function RegisterVehicle() {
   const [confidence, setConfidence] = useState("")
   const [plateState, setPlateState] = useState("")
   const [ocrError, setOcrError] = useState("")
+  const [plateChecked, setPlateChecked] = useState(false)
   const [registered, setRegistered] = useState<SessionEntry[]>([])
 
   const navigate = useNavigate()
@@ -53,6 +54,9 @@ export function RegisterVehicle() {
   const debouncedPlate = useDebouncedValue(plateNumber, 400)
   const plateLookup = useVehicleByPlate(debouncedPlate)
   const existing = plateLookup.data?.existingVehicle ?? null
+
+  // NOTE: a low-confidence read must be eyeballed — editing the plate or ticking the box clears the gate
+  const needsCheck = confidence === "low" && !plateChecked
 
   async function onPickImage(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -67,6 +71,7 @@ export function RegisterVehicle() {
     setConfidence("")
     setPlateState("")
     setOcrError("")
+    setPlateChecked(false)
 
     scan.mutate(optimized, {
       onSuccess: (result) => {
@@ -88,6 +93,7 @@ export function RegisterVehicle() {
     setConfidence("")
     setPlateState("")
     setOcrError("")
+    setPlateChecked(false)
     scan.reset()
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
@@ -95,7 +101,7 @@ export function RegisterVehicle() {
   function submit(event: FormEvent) {
     event.preventDefault()
     const plate = plateNumber.trim()
-    if (!plate || existing) return
+    if (!plate || existing || needsCheck) return
 
     register.mutate(
       { plateNumber: plate, plateState: plateState || undefined, imageUrl: imageUrl || undefined },
@@ -170,7 +176,10 @@ export function RegisterVehicle() {
             <Input
               autoFocus
               value={plateNumber}
-              onChange={(event) => setPlateNumber(event.target.value)}
+              onChange={(event) => {
+                setPlateNumber(event.target.value)
+                setPlateChecked(true)
+              }}
               placeholder="LND-123-XY"
               className="mt-1.5"
             />
@@ -203,12 +212,27 @@ export function RegisterVehicle() {
             </div>
           )}
 
+          {confidence === "low" && (
+            <label className="flex items-center gap-2 text-sm text-ink-soft">
+              <input
+                type="checkbox"
+                checked={plateChecked}
+                onChange={(event) => setPlateChecked(event.target.checked)}
+                className="accent-ink"
+              />
+              I've checked this plate is correct
+            </label>
+          )}
+
           {register.isError && (
             <p className="text-sm text-danfo-deep">{(register.error as Error).message}</p>
           )}
 
           <div className="flex gap-2">
-            <Button type="submit" disabled={!plateNumber.trim() || register.isPending || !!existing}>
+            <Button
+              type="submit"
+              disabled={!plateNumber.trim() || register.isPending || !!existing || needsCheck}
+            >
               {register.isPending ? "Registering…" : "Register"}
             </Button>
             <Button type="button" variant="ghost" onClick={() => fileInputRef.current?.click()}>
