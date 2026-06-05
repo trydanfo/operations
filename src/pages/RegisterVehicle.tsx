@@ -1,12 +1,8 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Camera } from "lucide-react"
-import {
-  useScanPlate,
-  useRegisterVehicle,
-  type Vehicle,
-  type ExistingVehicle,
-} from "../lib/vehicles"
+import { useScanPlate, useRegisterVehicle, useVehicleByPlate, type Vehicle } from "../lib/vehicles"
+import { useDebouncedValue } from "../lib/useDebouncedValue"
 import { Button } from "../components/ui/Button"
 import { Input } from "../components/ui/Input"
 import { cn } from "../lib/cn"
@@ -21,12 +17,15 @@ export function RegisterVehicle() {
   const [plateNumber, setPlateNumber] = useState("")
   const [confidence, setConfidence] = useState("")
   const [plateState, setPlateState] = useState("")
-  const [existing, setExisting] = useState<ExistingVehicle | null>(null)
   const [registered, setRegistered] = useState<SessionEntry[]>([])
 
   const navigate = useNavigate()
   const scan = useScanPlate()
   const register = useRegisterVehicle()
+
+  const debouncedPlate = useDebouncedValue(plateNumber, 400)
+  const plateLookup = useVehicleByPlate(debouncedPlate)
+  const existing = plateLookup.data?.existingVehicle ?? null
 
   function onPickImage(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -39,15 +38,12 @@ export function RegisterVehicle() {
     setConfidence("")
     setPlateState("")
 
-    setExisting(null)
-
     scan.mutate(file, {
       onSuccess: (result) => {
         setPlateNumber(result.plateNumber)
         setConfidence(result.confidence)
         setPlateState(result.plateState)
         setImageUrl(result.imageUrl)
-        setExisting(result.existingVehicle ?? null)
         setScanned(true)
       },
     })
@@ -60,7 +56,6 @@ export function RegisterVehicle() {
     setPlateNumber("")
     setConfidence("")
     setPlateState("")
-    setExisting(null)
     scan.reset()
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
@@ -68,7 +63,7 @@ export function RegisterVehicle() {
   function submit(event: FormEvent) {
     event.preventDefault()
     const plate = plateNumber.trim()
-    if (!plate) return
+    if (!plate || existing) return
 
     register.mutate(
       { plateNumber: plate, plateState: plateState || undefined, imageUrl: imageUrl || undefined },
@@ -120,9 +115,7 @@ export function RegisterVehicle() {
         )}
       </div>
 
-      {scan.isPending && (
-        <p className="mt-4 font-mono text-sm text-ink-faint">reading plate…</p>
-      )}
+      {scan.isPending && <p className="mt-4 font-mono text-sm text-ink-faint">reading plate…</p>}
 
       {scan.isError && (
         <div className="mt-4">
@@ -145,10 +138,7 @@ export function RegisterVehicle() {
             <Input
               autoFocus
               value={plateNumber}
-              onChange={(event) => {
-                setPlateNumber(event.target.value)
-                if (existing) setExisting(null)
-              }}
+              onChange={(event) => setPlateNumber(event.target.value)}
               placeholder="LND-123-XY"
               className="mt-1.5"
             />
@@ -177,7 +167,7 @@ export function RegisterVehicle() {
           )}
 
           <div className="flex gap-2">
-            <Button type="submit" disabled={!plateNumber.trim() || register.isPending}>
+            <Button type="submit" disabled={!plateNumber.trim() || register.isPending || !!existing}>
               {register.isPending ? "Registering…" : "Register"}
             </Button>
             <Button type="button" variant="ghost" onClick={() => fileInputRef.current?.click()}>

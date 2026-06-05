@@ -29,6 +29,18 @@ export function useVehicle(id: string) {
   })
 }
 
+export function useVehicleByPlate(plate: string) {
+  const trimmed = plate.trim()
+  return useQuery({
+    queryKey: ["vehicle-by-plate", trimmed.toLowerCase()],
+    queryFn: () =>
+      api<{ existingVehicle: ExistingVehicle | null }>(
+        `/api/v1/ops/vehicle-by-plate?plate=${encodeURIComponent(trimmed)}`,
+      ),
+    enabled: trimmed.length > 0,
+  })
+}
+
 function invalidateVehicleViews(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: ["vehicles"] })
   queryClient.invalidateQueries({ queryKey: ["stats"] })
