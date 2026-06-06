@@ -1,5 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, apiUpload } from "./api"
+
+export const VEHICLES_PAGE_SIZE = 50
 
 export type VehicleStatus = "active" | "suspended" | "retired"
 
@@ -14,11 +16,39 @@ export type Vehicle = {
   imageUrl: string
 }
 
+export type ExistingVehicle = {
+  id: number
+  publicCode: string
+  plateNumber: string
+  status: VehicleStatus
+}
+
+export type PlateScan = {
+  plateNumber: string
+  confidence: string
+  plateState: string
+  ocrError?: string
+  existingVehicle?: ExistingVehicle
+}
+
 export function useVehicles(search: string) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ["vehicles", search],
-    queryFn: () =>
-      api<Vehicle[]>(`/api/v1/ops/vehicles${search ? `?search=${encodeURIComponent(search)}` : ""}`),
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) =>
+      api<Vehicle[]>(
+        `/api/v1/ops/vehicles?search=${encodeURIComponent(search)}&limit=${VEHICLES_PAGE_SIZE}&offset=${pageParam}`,
+      ),
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length === VEHICLES_PAGE_SIZE ? allPages.length * VEHICLES_PAGE_SIZE : undefined,
+  })
+}
+
+export function useVehiclesByIds(ids: number[]) {
+  return useQuery({
+    queryKey: ["vehicles-by-ids", ids.join(",")],
+    queryFn: () => api<Vehicle[]>(`/api/v1/ops/vehicles?ids=${ids.join(",")}`),
+    enabled: ids.length > 0,
   })
 }
 
@@ -47,22 +77,6 @@ function invalidateVehicleViews(queryClient: ReturnType<typeof useQueryClient>) 
   queryClient.invalidateQueries({ queryKey: ["activities"] })
 }
 
-export type ExistingVehicle = {
-  id: number
-  publicCode: string
-  plateNumber: string
-  status: VehicleStatus
-}
-
-export type PlateScan = {
-  plateNumber: string
-  confidence: string
-  plateState: string
-  imageUrl: string
-  ocrError?: string
-  existingVehicle?: ExistingVehicle
-}
-
 export function useScanPlate() {
   return useMutation({
     mutationFn: (image: File) => {
@@ -80,16 +94,18 @@ export function useRegisterVehicle() {
     mutationFn: ({
       plateNumber,
       plateState,
-      imageUrl,
+      image,
     }: {
       plateNumber: string
       plateState?: string
-      imageUrl?: string
-    }) =>
-      api<Vehicle>("/api/v1/ops/vehicles", {
-        method: "POST",
-        body: JSON.stringify({ plateNumber, plateState, imageUrl }),
-      }),
+      image?: File
+    }) => {
+      const form = new FormData()
+      form.append("plateNumber", plateNumber)
+      if (plateState) form.append("plateState", plateState)
+      if (image) form.append("image", image)
+      return apiUpload<Vehicle>("/api/v1/ops/vehicles", form)
+    },
     onSuccess: () => invalidateVehicleViews(queryClient),
   })
 }

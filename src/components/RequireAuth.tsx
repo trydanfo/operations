@@ -1,9 +1,23 @@
-import type { ReactNode } from "react"
-import { useCurrentUser, signIn } from "../lib/auth"
+import { useEffect, type ReactNode } from "react"
+import { useQueryClient } from "@tanstack/react-query"
+import { useCurrentUser, signIn, signOut } from "../lib/auth"
+import { useToast } from "../lib/toast"
 import { Button } from "./ui/Button"
 
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { data: user, isLoading, isError } = useCurrentUser()
+  const toast = useToast()
+  const queryClient = useQueryClient()
+
+  const signedInButNotOperator = !!user && !user.isOperator
+
+  // NOTE: a signed-in non-operator is pushed straight back out — cookie cleared, toast shown, never sees the app
+  useEffect(() => {
+    if (signedInButNotOperator) {
+      toast("This account isn't authorized for ops.", "error")
+      signOut().finally(() => queryClient.invalidateQueries({ queryKey: ["current-user"] }))
+    }
+  }, [signedInButNotOperator, toast, queryClient])
 
   if (isLoading) {
     return (
@@ -13,7 +27,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     )
   }
 
-  if (isError || !user) {
+  if (isError || !user || signedInButNotOperator) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center">
         <div>

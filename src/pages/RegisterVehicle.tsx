@@ -1,8 +1,15 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Camera } from "lucide-react"
-import { useScanPlate, useRegisterVehicle, useVehicleByPlate, type Vehicle } from "../lib/vehicles"
+import {
+  useScanPlate,
+  useRegisterVehicle,
+  useVehicleByPlate,
+  type Vehicle,
+  type ExistingVehicle,
+} from "../lib/vehicles"
 import { useDebouncedValue } from "../lib/useDebouncedValue"
+import { useToast } from "../lib/toast"
 import { Button } from "../components/ui/Button"
 import { Input } from "../components/ui/Input"
 import { cn } from "../lib/cn"
@@ -37,9 +44,10 @@ async function downscaleImage(file: File, maxDimension: number): Promise<File> {
 
 export function RegisterVehicle() {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [manualMode, setManualMode] = useState(false)
   const [preview, setPreview] = useState("")
+  const [scanFile, setScanFile] = useState<File | null>(null)
   const [scanned, setScanned] = useState(false)
-  const [imageUrl, setImageUrl] = useState("")
   const [plateNumber, setPlateNumber] = useState("")
   const [confidence, setConfidence] = useState("")
   const [plateState, setPlateState] = useState("")
@@ -48,6 +56,7 @@ export function RegisterVehicle() {
   const [registered, setRegistered] = useState<SessionEntry[]>([])
 
   const navigate = useNavigate()
+  const toast = useToast()
   const scan = useScanPlate()
   const register = useRegisterVehicle()
 
@@ -63,10 +72,9 @@ export function RegisterVehicle() {
     if (!file) return
 
     const optimized = await downscaleImage(file, 1280)
-
+    setScanFile(optimized)
     setPreview(URL.createObjectURL(optimized))
     setScanned(false)
-    setImageUrl("")
     setPlateNumber("")
     setConfidence("")
     setPlateState("")
@@ -78,7 +86,6 @@ export function RegisterVehicle() {
         setPlateNumber(result.plateNumber)
         setConfidence(result.confidence)
         setPlateState(result.plateState)
-        setImageUrl(result.imageUrl)
         setOcrError(result.ocrError ?? "")
         setScanned(true)
       },
@@ -87,8 +94,8 @@ export function RegisterVehicle() {
 
   function reset() {
     setPreview("")
+    setScanFile(null)
     setScanned(false)
-    setImageUrl("")
     setPlateNumber("")
     setConfidence("")
     setPlateState("")
@@ -98,15 +105,16 @@ export function RegisterVehicle() {
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
-  function submit(event: FormEvent) {
-    event.preventDefault()
+  function doRegister(image?: File) {
     const plate = plateNumber.trim()
-    if (!plate || existing || needsCheck) return
+    if (!plate || existing) return
 
     register.mutate(
-      { plateNumber: plate, plateState: plateState || undefined, imageUrl: imageUrl || undefined },
+      { plateNumber: plate, plateState: plateState || undefined, image },
       {
         onSuccess: (vehicle: Vehicle) => {
+          toast(`Registered ${vehicle.plateNumber}`, "success")
+          if (navigator.vibrate) navigator.vibrate(60)
           setRegistered((current) => [
             { id: vehicle.id, plateNumber: vehicle.plateNumber, publicCode: vehicle.publicCode },
             ...current,
@@ -117,6 +125,17 @@ export function RegisterVehicle() {
     )
   }
 
+  function submitScanned(event: FormEvent) {
+    event.preventDefault()
+    if (needsCheck) return
+    doRegister(scanFile ?? undefined)
+  }
+
+  function submitManual(event: FormEvent) {
+    event.preventDefault()
+    doRegister(undefined)
+  }
+
   return (
     <div className="max-w-md">
       <Link to="/vehicles" className="font-mono text-xs text-ink-faint hover:text-ink">
@@ -125,131 +144,177 @@ export function RegisterVehicle() {
       <h1 className="mt-4 font-display text-2xl font-bold tracking-tight text-ink">Register vehicles</h1>
       <p className="mt-1 text-sm text-ink-soft">Snap the plate, confirm the read, register. Repeat.</p>
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={onPickImage}
-        className="hidden"
-      />
-
-      <div className="mt-6">
-        {preview ? (
-          <img
-            src={preview}
-            alt="plate"
-            className="h-44 w-full rounded-[var(--radius)] border border-line object-cover"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="flex h-44 w-full flex-col items-center justify-center gap-2 rounded-[var(--radius)] border border-dashed border-ink/20 text-ink-soft transition-colors hover:border-danfo hover:text-ink"
-          >
-            <Camera className="h-6 w-6" />
-            <span className="text-sm">Snap the plate</span>
-          </button>
-        )}
-      </div>
-
-      {scan.isPending && <p className="mt-4 font-mono text-sm text-ink-faint">reading plate…</p>}
-
-      {scan.isError && (
-        <div className="mt-4">
-          <p className="text-sm text-danfo-deep">Couldn't read the image. Try again.</p>
-          <Button type="button" variant="ghost" size="sm" className="mt-2" onClick={() => fileInputRef.current?.click()}>
-            Retake
-          </Button>
-        </div>
-      )}
-
-      {scanned && (
-        <form onSubmit={submit} className="mt-4 space-y-4">
+      {manualMode ? (
+        <form onSubmit={submitManual} className="mt-6 space-y-4">
           <div>
-            <div className="flex items-center justify-between">
-              <label className="font-mono text-xs uppercase tracking-wider text-ink-faint">
-                Plate number
-              </label>
-              {confidence && <ConfidenceTag confidence={confidence} />}
-            </div>
+            <label className="font-mono text-xs uppercase tracking-wider text-ink-faint">Plate number</label>
             <Input
               autoFocus
               value={plateNumber}
-              onChange={(event) => {
-                setPlateNumber(event.target.value)
-                setPlateChecked(true)
-              }}
+              onChange={(event) => setPlateNumber(event.target.value)}
               placeholder="LND-123-XY"
               className="mt-1.5"
             />
-            {plateState && <p className="mt-1 font-mono text-xs text-ink-faint">state: {plateState}</p>}
+          </div>
+          <div>
+            <label className="font-mono text-xs uppercase tracking-wider text-ink-faint">State (optional)</label>
+            <Input
+              value={plateState}
+              onChange={(event) => setPlateState(event.target.value)}
+              placeholder="LAGOS"
+              className="mt-1.5"
+            />
           </div>
 
-          {ocrError && (
-            <div className="rounded-[var(--radius)] border border-red-600/30 bg-red-600/5 p-3">
-              <p className="text-sm text-ink">
-                Couldn't read the plate automatically — enter it manually.
-              </p>
-              <p className="mt-1 font-mono text-xs text-red-600">{ocrError}</p>
-            </div>
-          )}
+          {existing && <ExistingNotice existing={existing} onOpen={() => navigate(`/vehicles/${existing.id}`)} />}
+          {register.isError && <p className="text-sm text-danfo-deep">{(register.error as Error).message}</p>}
 
-          {existing && (
-            <div className="rounded-[var(--radius)] border border-danfo/50 bg-danfo/10 p-3">
-              <p className="text-sm text-ink">
-                <span className="font-medium">Already registered.</span> This plate is on file as{" "}
-                <span className="font-mono">{existing.plateNumber}</span> · {existing.publicCode}.
-              </p>
-              <Button
+          <div className="flex gap-2">
+            <Button type="submit" disabled={!plateNumber.trim() || register.isPending || !!existing}>
+              {register.isPending ? "Registering…" : "Register"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                reset()
+                setManualMode(false)
+              }}
+            >
+              Use camera
+            </Button>
+          </div>
+        </form>
+      ) : (
+        <>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={onPickImage}
+            className="hidden"
+          />
+
+          <div className="mt-6">
+            {preview ? (
+              <img
+                src={preview}
+                alt="plate"
+                className="h-44 w-full rounded-[var(--radius)] border border-line object-cover"
+              />
+            ) : (
+              <button
                 type="button"
-                size="sm"
-                className="mt-2.5"
-                onClick={() => navigate(`/vehicles/${existing.id}`)}
+                onClick={() => fileInputRef.current?.click()}
+                className="flex h-44 w-full flex-col items-center justify-center gap-2 rounded-[var(--radius)] border border-dashed border-ink/20 text-ink-soft transition-colors hover:border-danfo hover:text-ink"
               >
-                Open vehicle page
+                <Camera className="h-6 w-6" />
+                <span className="text-sm">Snap the plate</span>
+              </button>
+            )}
+          </div>
+
+          {scan.isPending && <p className="mt-4 font-mono text-sm text-ink-faint">reading plate…</p>}
+
+          {scan.isError && (
+            <div className="mt-4">
+              <p className="text-sm text-danfo-deep">Couldn't read the image. Try again.</p>
+              <Button type="button" variant="ghost" size="sm" className="mt-2" onClick={() => fileInputRef.current?.click()}>
+                Retake
               </Button>
             </div>
           )}
 
-          {confidence === "low" && (
-            <label className="flex items-center gap-2 text-sm text-ink-soft">
-              <input
-                type="checkbox"
-                checked={plateChecked}
-                onChange={(event) => setPlateChecked(event.target.checked)}
-                className="accent-ink"
-              />
-              I've checked this plate is correct
-            </label>
+          {scanned && (
+            <form onSubmit={submitScanned} className="mt-4 space-y-4">
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className="font-mono text-xs uppercase tracking-wider text-ink-faint">Plate number</label>
+                  {confidence && <ConfidenceTag confidence={confidence} />}
+                </div>
+                <Input
+                  autoFocus
+                  value={plateNumber}
+                  onChange={(event) => {
+                    setPlateNumber(event.target.value)
+                    setPlateChecked(true)
+                  }}
+                  placeholder="LND-123-XY"
+                  className="mt-1.5"
+                />
+                {plateState && <p className="mt-1 font-mono text-xs text-ink-faint">state: {plateState}</p>}
+              </div>
+
+              {ocrError && (
+                <div className="rounded-[var(--radius)] border border-red-600/30 bg-red-600/5 p-3">
+                  <p className="text-sm text-ink">Couldn't read the plate automatically — enter it manually.</p>
+                  <p className="mt-1 font-mono text-xs text-red-600">{ocrError}</p>
+                </div>
+              )}
+
+              {existing && <ExistingNotice existing={existing} onOpen={() => navigate(`/vehicles/${existing.id}`)} />}
+
+              {confidence === "low" && (
+                <label className="flex items-center gap-2 text-sm text-ink-soft">
+                  <input
+                    type="checkbox"
+                    checked={plateChecked}
+                    onChange={(event) => setPlateChecked(event.target.checked)}
+                    className="accent-ink"
+                  />
+                  I've checked this plate is correct
+                </label>
+              )}
+
+              {register.isError && <p className="text-sm text-danfo-deep">{(register.error as Error).message}</p>}
+
+              <div className="flex gap-2">
+                <Button
+                  type="submit"
+                  disabled={!plateNumber.trim() || register.isPending || !!existing || needsCheck}
+                >
+                  {register.isPending ? "Registering…" : "Register"}
+                </Button>
+                <Button type="button" variant="ghost" onClick={() => fileInputRef.current?.click()}>
+                  Retake
+                </Button>
+                <Button type="button" variant="ghost" onClick={reset}>
+                  Clear
+                </Button>
+              </div>
+            </form>
           )}
 
-          {register.isError && (
-            <p className="text-sm text-danfo-deep">{(register.error as Error).message}</p>
-          )}
-
-          <div className="flex gap-2">
-            <Button
-              type="submit"
-              disabled={!plateNumber.trim() || register.isPending || !!existing || needsCheck}
+          {!scanned && !scan.isPending && (
+            <button
+              type="button"
+              onClick={() => {
+                reset()
+                setManualMode(true)
+              }}
+              className="mt-4 font-mono text-xs text-ink-faint transition-colors hover:text-ink"
             >
-              {register.isPending ? "Registering…" : "Register"}
-            </Button>
-            <Button type="button" variant="ghost" onClick={() => fileInputRef.current?.click()}>
-              Retake
-            </Button>
-            <Button type="button" variant="ghost" onClick={reset}>
-              Clear
-            </Button>
-          </div>
-        </form>
+              or register manually →
+            </button>
+          )}
+        </>
       )}
 
       {registered.length > 0 && (
         <div className="mt-10">
-          <h2 className="font-mono text-xs uppercase tracking-wider text-ink-faint">
-            Registered this session · {registered.length}
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="font-mono text-xs uppercase tracking-wider text-ink-faint">
+              Registered this session · {registered.length}
+            </h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(`/print?ids=${registered.map((entry) => entry.id).join(",")}`)}
+            >
+              Print all
+            </Button>
+          </div>
           <ul className="mt-3 divide-y divide-line rounded-[var(--radius)] border border-line">
             {registered.map((entry) => (
               <li key={entry.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
@@ -260,6 +325,20 @@ export function RegisterVehicle() {
           </ul>
         </div>
       )}
+    </div>
+  )
+}
+
+function ExistingNotice({ existing, onOpen }: { existing: ExistingVehicle; onOpen: () => void }) {
+  return (
+    <div className="rounded-[var(--radius)] border border-danfo/50 bg-danfo/10 p-3">
+      <p className="text-sm text-ink">
+        <span className="font-medium">Already registered.</span> This plate is on file as{" "}
+        <span className="font-mono">{existing.plateNumber}</span> · {existing.publicCode}.
+      </p>
+      <Button type="button" size="sm" className="mt-2.5" onClick={onOpen}>
+        Open vehicle page
+      </Button>
     </div>
   )
 }
@@ -276,9 +355,7 @@ function ConfidenceTag({ confidence }: { confidence: string }) {
           isLow && "bg-red-500",
         )}
       />
-      <span className={isLow ? "text-red-600" : "text-ink-faint"}>
-        {isLow ? "low — check" : confidence}
-      </span>
+      <span className={isLow ? "text-red-600" : "text-ink-faint"}>{isLow ? "low — check" : confidence}</span>
     </span>
   )
 }

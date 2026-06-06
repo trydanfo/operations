@@ -7,6 +7,7 @@ export type CurrentUser = {
   firstName: string
   lastName: string
   profilePicture: string
+  isOperator: boolean
 }
 
 export function useCurrentUser() {
