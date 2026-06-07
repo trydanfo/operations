@@ -20,10 +20,18 @@ export type RideDetail = RideListItem & {
   reports: { id: number; kind: string; status: string }[]
 }
 
-export function useRides(page: number) {
+export function useRides(page: number, status: string, since: string) {
   return useQuery({
-    queryKey: ["rides", page],
-    queryFn: () => api<RideListItem[]>(`/api/v1/ops/rides?limit=${RIDES_PAGE_SIZE}&offset=${page * RIDES_PAGE_SIZE}`),
+    queryKey: ["rides", page, status, since],
+    queryFn: () => {
+      const params = new URLSearchParams({
+        limit: String(RIDES_PAGE_SIZE),
+        offset: String(page * RIDES_PAGE_SIZE),
+      })
+      if (status) params.set("status", status)
+      if (since && since !== "all") params.set("since", since)
+      return api<RideListItem[]>(`/api/v1/ops/rides?${params.toString()}`)
+    },
     placeholderData: (previous) => previous,
   })
 }

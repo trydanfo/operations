@@ -1,16 +1,12 @@
 import { useQuery } from "@tanstack/react-query"
 import { api } from "./api"
 
-export type StatsRange = "today" | "week" | "month"
+export type StatsRange = "today" | "week" | "month" | "all"
 
 export type Stats = {
   range: StatsRange
   rides: number
   rideShares: number
-  passengers: number
-  distanceMeters: number
-  reviews: number
-  reports: number
 }
 
 export function useStats(range: StatsRange) {

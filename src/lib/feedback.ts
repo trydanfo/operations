@@ -11,6 +11,7 @@ export type ReviewItem = {
   reviewer: string
   anonymous: boolean
   createdAt: string
+  tripId: number
 }
 
 export type VehicleReviews = {
@@ -22,14 +23,19 @@ export type VehicleReviews = {
 export type ReviewSort = "newest" | "oldest" | "highest" | "lowest"
 export type ReviewSince = "all" | "today" | "week" | "month"
 
-export function useVehicleReviews(code: string, page: number, sort: ReviewSort, since: ReviewSince) {
+export function useVehicleReviews(vehicleId: number, page: number, sort: ReviewSort, since: ReviewSince) {
   return useQuery({
-    queryKey: ["vehicle-reviews", code, page, sort, since],
-    queryFn: () =>
-      api<VehicleReviews>(
-        `/api/v1/vehicles/by-code/${code}/reviews?limit=${REVIEWS_PAGE_SIZE}&offset=${page * REVIEWS_PAGE_SIZE}&sort=${sort}&since=${since}`,
-      ),
-    enabled: !!code,
+    queryKey: ["vehicle-reviews", vehicleId, page, sort, since],
+    queryFn: () => {
+      const params = new URLSearchParams({
+        limit: String(REVIEWS_PAGE_SIZE),
+        offset: String(page * REVIEWS_PAGE_SIZE),
+        sort,
+      })
+      if (since !== "all") params.set("since", since)
+      return api<VehicleReviews>(`/api/v1/ops/vehicles/${vehicleId}/reviews?${params.toString()}`)
+    },
+    enabled: !!vehicleId,
     placeholderData: (previous) => previous,
   })
 }
@@ -61,15 +67,16 @@ export function useVehicleReports(vehicleId: number, page: number, status: strin
   })
 }
 
-export function useReports(status: string, page: number) {
+export function useReports(status: string, since: string, page: number) {
   return useQuery({
-    queryKey: ["reports", status, page],
+    queryKey: ["reports", status, since, page],
     queryFn: () => {
       const params = new URLSearchParams({
         limit: String(REPORTS_PAGE_SIZE),
         offset: String(page * REPORTS_PAGE_SIZE),
       })
       if (status) params.set("status", status)
+      if (since && since !== "all") params.set("since", since)
       return api<ReportListItem[]>(`/api/v1/ops/reports?${params.toString()}`)
     },
     placeholderData: (previous) => previous,

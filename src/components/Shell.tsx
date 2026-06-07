@@ -27,7 +27,6 @@ export function Shell({ children }: { children: ReactNode }) {
               <NavItem to="/rides" label="Rides" />
               <NavItem to="/reports" label="Reports" />
               <NavItem to="/vehicles" label="Vehicles" />
-              <NavItem to="/audit" label="Audit" />
             </nav>
           </div>
           <div className="flex items-center gap-3">

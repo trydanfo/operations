@@ -24,6 +24,7 @@ import {
   type ReviewSince,
 } from "../lib/feedback"
 import { useToast } from "../lib/toast"
+import { formatDateTime } from "../lib/rides"
 import { cn } from "../lib/cn"
 
 const allStatuses: VehicleStatus[] = ["active", "suspended", "retired"]
@@ -66,7 +67,7 @@ export function VehicleDetail() {
   const [reportPage, setReportPage] = useState(0)
   const [reportStatus, setReportStatus] = useState("")
 
-  const reviews = useVehicleReviews(vehicle?.publicCode ?? "", reviewPage, reviewSort, reviewSince)
+  const reviews = useVehicleReviews(vehicle?.id ?? 0, reviewPage, reviewSort, reviewSince)
   const reports = useVehicleReports(vehicle?.id ?? 0, reportPage, reportStatus)
 
   const [editingPlate, setEditingPlate] = useState(false)
@@ -329,6 +330,12 @@ export function VehicleDetail() {
                     <StarRating value={review.rating} />
                   </div>
                   {review.body && <p className="mt-1.5 text-sm text-ink-soft">{review.body}</p>}
+                  <div className="mt-2 flex items-center gap-3 font-mono text-xs text-ink-faint">
+                    <span>{formatDateTime(review.createdAt)}</span>
+                    <Link to={`/rides/${review.tripId}`} className="text-ink-faint transition-colors hover:text-danfo-deep">
+                      view ride →
+                    </Link>
+                  </div>
                 </li>
               ))}
             </ul>
