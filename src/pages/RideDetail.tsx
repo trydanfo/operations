@@ -1,7 +1,8 @@
 import { Link, useParams } from "react-router-dom"
 import { MapContainer, TileLayer, Polyline } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
-import { useRide, formatDistance } from "../lib/rides"
+import { useRide, formatDistance, formatDateTime, formatDuration } from "../lib/rides"
+import { StatusPill } from "../components/StatusPill"
 
 export function RideDetail() {
   const { id } = useParams<{ id: string }>()
@@ -31,15 +32,22 @@ export function RideDetail() {
       <Link to="/rides" className="font-mono text-xs text-ink-faint hover:text-ink">
         ← rides
       </Link>
-      <h1 className="mt-4 font-display text-2xl font-bold tracking-tight text-ink">
-        {ride.plate || ride.vehicleCode}
-      </h1>
 
-      <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-        <Field label="Rider" value={ride.rider || "—"} />
-        <Field label="Status" value={ride.status} />
+      <div className="mt-4 flex items-center justify-between gap-4">
+        <Link
+          to={`/vehicles/${ride.vehicleId}`}
+          className="font-display text-2xl font-bold tracking-tight text-ink transition-colors hover:text-danfo-deep"
+        >
+          {ride.plate || ride.vehicleCode}
+        </Link>
+        <StatusPill status={ride.status} />
+      </div>
+      <p className="mt-1 text-sm text-ink-soft">{formatDateTime(ride.startedAt)}</p>
+
+      <dl className="mt-5 grid grid-cols-3 gap-3 text-sm">
+        <Field label="Passenger" value={ride.passenger || "—"} />
         <Field label="Distance" value={formatDistance(ride.distanceMeters)} />
-        <Field label="When" value={new Date(ride.startedAt).toLocaleString()} />
+        <Field label="Duration" value={formatDuration(ride.startedAt, ride.endedAt)} />
       </dl>
 
       <div className="mt-6">

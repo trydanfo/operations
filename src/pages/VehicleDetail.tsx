@@ -10,7 +10,9 @@ import { Button } from "../components/ui/Button"
 import { Input } from "../components/ui/Input"
 import { Dialog } from "../components/ui/Dialog"
 import { StatusBadge } from "../components/StatusBadge"
+import { StatusPill } from "../components/StatusPill"
 import { VehicleQR, vehicleScanUrl } from "../components/VehicleQR"
+import { useVehicleReviews, useVehicleReports, moodEmoji } from "../lib/feedback"
 
 const allStatuses: VehicleStatus[] = ["active", "suspended", "retired"]
 
@@ -20,6 +22,8 @@ export function VehicleDetail() {
   const { data: vehicle, isLoading } = useVehicle(id ?? "")
   const updateVehicle = useUpdateVehicle()
   const deleteVehicle = useDeleteVehicle()
+  const reviews = useVehicleReviews(vehicle?.publicCode ?? "")
+  const reports = useVehicleReports(vehicle?.id ?? 0)
 
   const [editingPlate, setEditingPlate] = useState(false)
   const [plateDraft, setPlateDraft] = useState("")
@@ -173,6 +177,63 @@ export function VehicleDetail() {
             Print sticker
           </Button>
         </div>
+      </div>
+
+      <div className="mt-10 grid gap-8 sm:grid-cols-2">
+        <section>
+          <h2 className="font-mono text-xs uppercase tracking-wider text-ink-faint">Reviews</h2>
+          {reviews.data && reviews.data.count > 0 ? (
+            <>
+              <div className="mt-2 flex items-center gap-2">
+                <span className="text-2xl">{moodEmoji[Math.round(reviews.data.average)] || "—"}</span>
+                <span className="text-sm text-ink-soft">
+                  {reviews.data.average.toFixed(1)} · {reviews.data.count} review
+                  {reviews.data.count === 1 ? "" : "s"}
+                </span>
+              </div>
+              <ul className="mt-3 space-y-2">
+                {reviews.data.reviews.map((review, index) => (
+                  <li key={index} className="rounded-[var(--radius)] border border-line p-3 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span>
+                        {moodEmoji[review.rating]}{" "}
+                        <span className="font-medium text-ink">{review.reviewer}</span>
+                      </span>
+                      <span className="font-mono text-xs text-ink-faint">
+                        {new Date(review.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    {review.body && <p className="mt-1 text-ink-soft">{review.body}</p>}
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="mt-2 text-sm text-ink-faint">No reviews yet.</p>
+          )}
+        </section>
+
+        <section>
+          <h2 className="font-mono text-xs uppercase tracking-wider text-ink-faint">Reports</h2>
+          {reports.data && reports.data.length > 0 ? (
+            <ul className="mt-3 space-y-2">
+              {reports.data.map((report) => (
+                <li key={report.id} className="rounded-[var(--radius)] border border-line p-3 text-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-ink">{report.kind.replace(/_/g, " ")}</span>
+                    <StatusPill status={report.status} />
+                  </div>
+                  {report.body && <p className="mt-1 text-ink-soft">{report.body}</p>}
+                  <p className="mt-1 font-mono text-xs text-ink-faint">
+                    {new Date(report.createdAt).toLocaleDateString()}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-2 text-sm text-ink-faint">No reports.</p>
+          )}
+        </section>
       </div>
 
       <Dialog

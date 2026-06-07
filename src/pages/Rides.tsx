@@ -2,6 +2,7 @@ import { Link } from "react-router-dom"
 import { useRides, formatDistance } from "../lib/rides"
 import { ApiError } from "../lib/api"
 import { Button } from "../components/ui/Button"
+import { StatusPill } from "../components/StatusPill"
 import { OperatorAccessRequired } from "../components/OperatorAccessRequired"
 
 export function Rides() {
@@ -23,7 +24,7 @@ export function Rides() {
           <thead>
             <tr className="border-b border-line text-left font-mono text-xs uppercase tracking-wider text-ink-faint">
               <th className="px-4 py-3 font-medium">Plate</th>
-              <th className="px-4 py-3 font-medium">Rider</th>
+              <th className="px-4 py-3 font-medium">Passenger</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium">Distance</th>
               <th className="px-4 py-3 font-medium">When</th>
@@ -47,8 +48,8 @@ export function Rides() {
                     {ride.plate || ride.vehicleCode}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-ink-soft">{ride.rider || "—"}</td>
-                <td className="px-4 py-3 font-mono text-ink-soft">{ride.status}</td>
+                <td className="px-4 py-3 text-ink-soft">{ride.passenger || "—"}</td>
+                <td className="px-4 py-3"><StatusPill status={ride.status} /></td>
                 <td className="px-4 py-3 text-ink-soft">{formatDistance(ride.distanceMeters)}</td>
                 <td className="px-4 py-3 text-ink-faint">{new Date(ride.startedAt).toLocaleString()}</td>
               </tr>
