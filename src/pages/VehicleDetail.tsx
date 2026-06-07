@@ -11,8 +11,10 @@ import { Input } from "../components/ui/Input"
 import { Dialog } from "../components/ui/Dialog"
 import { StatusBadge } from "../components/StatusBadge"
 import { StatusPill } from "../components/StatusPill"
+import { DashRating } from "../components/DashRating"
 import { VehicleQR, vehicleScanUrl } from "../components/VehicleQR"
-import { useVehicleReviews, useVehicleReports, moodEmoji } from "../lib/feedback"
+import { useVehicleReviews, useVehicleReports, formatReportKind } from "../lib/feedback"
+import { cn } from "../lib/cn"
 
 const allStatuses: VehicleStatus[] = ["active", "suspended", "retired"]
 
@@ -185,7 +187,7 @@ export function VehicleDetail() {
           {reviews.data && reviews.data.count > 0 ? (
             <>
               <div className="mt-2 flex items-center gap-2">
-                <span className="text-2xl">{moodEmoji[Math.round(reviews.data.average)] || "—"}</span>
+                <DashRating value={Math.round(reviews.data.average)} />
                 <span className="text-sm text-ink-soft">
                   {reviews.data.average.toFixed(1)} · {reviews.data.count} review
                   {reviews.data.count === 1 ? "" : "s"}
@@ -193,17 +195,19 @@ export function VehicleDetail() {
               </div>
               <ul className="mt-3 space-y-2">
                 {reviews.data.reviews.map((review, index) => (
-                  <li key={index} className="rounded-[var(--radius)] border border-line p-3 text-sm">
-                    <div className="flex items-center justify-between">
-                      <span>
-                        {moodEmoji[review.rating]}{" "}
-                        <span className="font-medium text-ink">{review.reviewer}</span>
+                  <li key={index} className="rounded-[var(--radius)] border border-line p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <span
+                        className={cn(
+                          "text-sm font-medium text-ink",
+                          review.anonymous && "select-none blur-[3px]",
+                        )}
+                      >
+                        {review.reviewer}
                       </span>
-                      <span className="font-mono text-xs text-ink-faint">
-                        {new Date(review.createdAt).toLocaleDateString()}
-                      </span>
+                      <DashRating value={review.rating} />
                     </div>
-                    {review.body && <p className="mt-1 text-ink-soft">{review.body}</p>}
+                    {review.body && <p className="mt-1.5 text-sm text-ink-soft">{review.body}</p>}
                   </li>
                 ))}
               </ul>
@@ -218,15 +222,19 @@ export function VehicleDetail() {
           {reports.data && reports.data.length > 0 ? (
             <ul className="mt-3 space-y-2">
               {reports.data.map((report) => (
-                <li key={report.id} className="rounded-[var(--radius)] border border-line p-3 text-sm">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium text-ink">{report.kind.replace(/_/g, " ")}</span>
-                    <StatusPill status={report.status} />
-                  </div>
-                  {report.body && <p className="mt-1 text-ink-soft">{report.body}</p>}
-                  <p className="mt-1 font-mono text-xs text-ink-faint">
-                    {new Date(report.createdAt).toLocaleDateString()}
-                  </p>
+                <li key={report.id}>
+                  <Link
+                    to={`/reports/${report.id}`}
+                    className="flex items-center justify-between gap-2 rounded-[var(--radius)] border border-line p-3 text-sm transition-colors hover:bg-paper-deep/50"
+                  >
+                    <span className="font-medium text-ink">{formatReportKind(report.kind)}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs text-ink-faint">
+                        {new Date(report.createdAt).toLocaleDateString()}
+                      </span>
+                      <StatusPill status={report.status} />
+                    </div>
+                  </Link>
                 </li>
               ))}
             </ul>

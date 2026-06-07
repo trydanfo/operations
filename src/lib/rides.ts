@@ -17,6 +17,7 @@ export type RideListItem = {
 
 export type RideDetail = RideListItem & {
   routePolyline: string
+  reports: { id: number; kind: string; status: string }[]
 }
 
 export function useRides() {
