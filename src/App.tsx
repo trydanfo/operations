@@ -9,6 +9,7 @@ import { Rides } from "./pages/Rides"
 import { RideDetail } from "./pages/RideDetail"
 import { Reports } from "./pages/Reports"
 import { ReportDetail } from "./pages/ReportDetail"
+import { Audit } from "./pages/Audit"
 import { Print } from "./pages/Print"
 
 export default function App() {
@@ -29,6 +30,7 @@ export default function App() {
                 <Route path="/vehicles" element={<Vehicles />} />
                 <Route path="/vehicles/new" element={<RegisterVehicle />} />
                 <Route path="/vehicles/:id" element={<VehicleDetail />} />
+                <Route path="/audit" element={<Audit />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Shell>

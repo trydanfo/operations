@@ -20,13 +20,14 @@ export type VehicleReviews = {
 }
 
 export type ReviewSort = "newest" | "oldest" | "highest" | "lowest"
+export type ReviewSince = "all" | "today" | "week" | "month"
 
-export function useVehicleReviews(code: string, page: number, sort: ReviewSort) {
+export function useVehicleReviews(code: string, page: number, sort: ReviewSort, since: ReviewSince) {
   return useQuery({
-    queryKey: ["vehicle-reviews", code, page, sort],
+    queryKey: ["vehicle-reviews", code, page, sort, since],
     queryFn: () =>
       api<VehicleReviews>(
-        `/api/v1/vehicles/by-code/${code}/reviews?limit=${REVIEWS_PAGE_SIZE}&offset=${page * REVIEWS_PAGE_SIZE}&sort=${sort}`,
+        `/api/v1/vehicles/by-code/${code}/reviews?limit=${REVIEWS_PAGE_SIZE}&offset=${page * REVIEWS_PAGE_SIZE}&sort=${sort}&since=${since}`,
       ),
     enabled: !!code,
     placeholderData: (previous) => previous,

@@ -71,6 +71,7 @@ export function useVehicleByPlate(plate: string) {
 
 function invalidateVehicleViews(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: ["vehicles"] })
+  queryClient.invalidateQueries({ queryKey: ["vehicle-counts"] })
   queryClient.invalidateQueries({ queryKey: ["stats"] })
   queryClient.invalidateQueries({ queryKey: ["activities"] })
 }

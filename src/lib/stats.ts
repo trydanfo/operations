@@ -1,14 +1,36 @@
 import { useQuery } from "@tanstack/react-query"
 import { api } from "./api"
 
+export type StatsRange = "today" | "week" | "month"
+
 export type Stats = {
-  vehicles: number
-  users: number
+  range: StatsRange
+  rides: number
+  rideShares: number
+  passengers: number
+  distanceMeters: number
+  reviews: number
+  reports: number
 }
 
-export function useStats() {
+export function useStats(range: StatsRange) {
   return useQuery({
-    queryKey: ["stats"],
-    queryFn: () => api<Stats>("/api/v1/ops/stats"),
+    queryKey: ["stats", range],
+    queryFn: () => api<Stats>(`/api/v1/ops/stats?range=${range}`),
+    placeholderData: (previous) => previous,
+  })
+}
+
+export type VehicleCounts = {
+  active: number
+  suspended: number
+  retired: number
+  total: number
+}
+
+export function useVehicleCounts() {
+  return useQuery({
+    queryKey: ["vehicle-counts"],
+    queryFn: () => api<VehicleCounts>("/api/v1/ops/vehicle-counts"),
   })
 }

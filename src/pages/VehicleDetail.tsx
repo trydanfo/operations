@@ -21,7 +21,9 @@ import {
   REVIEWS_PAGE_SIZE,
   VEHICLE_REPORTS_PAGE_SIZE,
   type ReviewSort,
+  type ReviewSince,
 } from "../lib/feedback"
+import { useToast } from "../lib/toast"
 import { cn } from "../lib/cn"
 
 const allStatuses: VehicleStatus[] = ["active", "suspended", "retired"]
@@ -33,6 +35,13 @@ const reviewSorts: { value: ReviewSort; label: string }[] = [
   { value: "oldest", label: "Oldest" },
   { value: "highest", label: "Highest rated" },
   { value: "lowest", label: "Lowest rated" },
+]
+
+const reviewWindows: { value: ReviewSince; label: string }[] = [
+  { value: "all", label: "All time" },
+  { value: "today", label: "Today" },
+  { value: "week", label: "This week" },
+  { value: "month", label: "This month" },
 ]
 
 const reportStatuses: { value: string; label: string }[] = [
@@ -48,19 +57,22 @@ export function VehicleDetail() {
   const { data: vehicle, isLoading } = useVehicle(id ?? "")
   const updateVehicle = useUpdateVehicle()
   const deleteVehicle = useDeleteVehicle()
+  const toast = useToast()
 
   const [tab, setTab] = useState<Tab>("general")
   const [reviewPage, setReviewPage] = useState(0)
   const [reviewSort, setReviewSort] = useState<ReviewSort>("newest")
+  const [reviewSince, setReviewSince] = useState<ReviewSince>("all")
   const [reportPage, setReportPage] = useState(0)
   const [reportStatus, setReportStatus] = useState("")
 
-  const reviews = useVehicleReviews(vehicle?.publicCode ?? "", reviewPage, reviewSort)
+  const reviews = useVehicleReviews(vehicle?.publicCode ?? "", reviewPage, reviewSort, reviewSince)
   const reports = useVehicleReports(vehicle?.id ?? 0, reportPage, reportStatus)
 
   const [editingPlate, setEditingPlate] = useState(false)
   const [plateDraft, setPlateDraft] = useState("")
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [pendingStatus, setPendingStatus] = useState<VehicleStatus | null>(null)
   const [showImage, setShowImage] = useState(false)
 
   if (isLoading) {
@@ -81,12 +93,42 @@ export function VehicleDetail() {
     }
     updateVehicle.mutate(
       { id: vehicle!.id, plateNumber: next },
-      { onSuccess: () => setEditingPlate(false) },
+      {
+        onSuccess: () => {
+          setEditingPlate(false)
+          toast(`Plate updated to ${next}`, "success")
+        },
+        onError: (error) => toast((error as Error).message || "Could not update plate", "error"),
+      },
+    )
+  }
+
+  function applyStatus() {
+    if (!pendingStatus || !vehicle) return
+    const status = pendingStatus
+    updateVehicle.mutate(
+      { id: vehicle.id, status },
+      {
+        onSuccess: () => {
+          toast(`Marked ${status}`, "success")
+          setPendingStatus(null)
+        },
+        onError: (error) => {
+          toast((error as Error).message || "Could not update status", "error")
+          setPendingStatus(null)
+        },
+      },
     )
   }
 
   function confirmDelete() {
-    deleteVehicle.mutate(vehicle!.id, { onSuccess: () => navigate("/vehicles") })
+    deleteVehicle.mutate(vehicle!.id, {
+      onSuccess: () => {
+        toast(`Deleted ${vehicle!.plateNumber}`, "success")
+        navigate("/vehicles")
+      },
+      onError: (error) => toast((error as Error).message || "Could not delete vehicle", "error"),
+    })
   }
 
   return (
@@ -193,7 +235,7 @@ export function VehicleDetail() {
                   variant="outline"
                   size="sm"
                   disabled={updateVehicle.isPending}
-                  onClick={() => updateVehicle.mutate({ id: vehicle.id, status })}
+                  onClick={() => setPendingStatus(status)}
                 >
                   Mark {status}
                 </Button>
@@ -239,20 +281,36 @@ export function VehicleDetail() {
                 <span className="text-sm text-ink-faint">No reviews yet.</span>
               )}
             </div>
-            <select
-              value={reviewSort}
-              onChange={(event) => {
-                setReviewSort(event.target.value as ReviewSort)
-                setReviewPage(0)
-              }}
-              className="rounded-[var(--radius)] border border-line bg-paper px-3 py-1.5 text-sm text-ink"
-            >
-              {reviewSorts.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center gap-2">
+              <select
+                value={reviewSince}
+                onChange={(event) => {
+                  setReviewSince(event.target.value as ReviewSince)
+                  setReviewPage(0)
+                }}
+                className="rounded-[var(--radius)] border border-line bg-paper px-3 py-1.5 text-sm text-ink"
+              >
+                {reviewWindows.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={reviewSort}
+                onChange={(event) => {
+                  setReviewSort(event.target.value as ReviewSort)
+                  setReviewPage(0)
+                }}
+                className="rounded-[var(--radius)] border border-line bg-paper px-3 py-1.5 text-sm text-ink"
+              >
+                {reviewSorts.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {reviews.data && reviews.data.reviews.length > 0 && (
@@ -336,6 +394,22 @@ export function VehicleDetail() {
           />
         </div>
       )}
+
+      <Dialog
+        open={pendingStatus !== null}
+        onOpenChange={(open) => !open && setPendingStatus(null)}
+        title={pendingStatus ? `Mark ${vehicle.plateNumber} ${pendingStatus}?` : ""}
+        description="This is recorded in the audit log against your account."
+      >
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" onClick={() => setPendingStatus(null)}>
+            Cancel
+          </Button>
+          <Button disabled={updateVehicle.isPending} onClick={applyStatus}>
+            {updateVehicle.isPending ? "Saving…" : "Confirm"}
+          </Button>
+        </div>
+      </Dialog>
 
       <Dialog
         open={confirmingDelete}

@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useVehicles, VEHICLES_PAGE_SIZE } from "../lib/vehicles"
+import { useVehicleCounts } from "../lib/stats"
 import { ApiError } from "../lib/api"
 import { Button } from "../components/ui/Button"
 import { Input } from "../components/ui/Input"
@@ -13,6 +14,7 @@ export function Vehicles() {
   const [page, setPage] = useState(0)
   const navigate = useNavigate()
   const { data, isLoading, error } = useVehicles(search, page)
+  const counts = useVehicleCounts()
 
   if (error instanceof ApiError && error.status === 403) {
     return <OperatorAccessRequired />
@@ -25,6 +27,13 @@ export function Vehicles() {
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Vehicles</h1>
         <Button onClick={() => navigate("/vehicles/new")}>+ Register</Button>
+      </div>
+
+      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <CountCard label="Total" value={counts.data?.total} />
+        <CountCard label="Active" value={counts.data?.active} accent />
+        <CountCard label="Suspended" value={counts.data?.suspended} />
+        <CountCard label="Retired" value={counts.data?.retired} />
       </div>
 
       <div className="mt-6">
@@ -84,6 +93,17 @@ export function Vehicles() {
       </div>
 
       <Pagination page={page} hasNext={vehicles.length === VEHICLES_PAGE_SIZE} onChange={setPage} />
+    </div>
+  )
+}
+
+function CountCard({ label, value, accent }: { label: string; value?: number; accent?: boolean }) {
+  return (
+    <div className="rounded-[var(--radius)] border border-line p-5">
+      <div className="font-mono text-xs uppercase tracking-wider text-ink-faint">{label}</div>
+      <div className={accent ? "mt-3 font-display text-3xl font-bold text-danfo-deep" : "mt-3 font-display text-3xl font-bold text-ink"}>
+        {value ?? 0}
+      </div>
     </div>
   )
 }

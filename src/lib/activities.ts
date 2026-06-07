@@ -13,6 +13,8 @@ export type Activity = {
   detail: string
 }
 
+export const AUDIT_PAGE_SIZE = 10
+
 export function useActivities() {
   return useQuery({
     queryKey: ["activities"],
@@ -20,10 +22,24 @@ export function useActivities() {
   })
 }
 
+export function useAudit(page: number) {
+  return useQuery({
+    queryKey: ["audit", page],
+    queryFn: () =>
+      api<Activity[]>(
+        `/api/v1/ops/activities?limit=${AUDIT_PAGE_SIZE}&offset=${page * AUDIT_PAGE_SIZE}`,
+      ),
+    placeholderData: (previous) => previous,
+  })
+}
+
 const actionVerbs: Record<string, string> = {
   "vehicle.registered": "registered",
   "vehicle.edited": "edited",
   "vehicle.deleted": "deleted",
+  "report.resolved": "resolved a report on",
+  "report.dismissed": "dismissed a report on",
+  "report.reopened": "reopened a report on",
 }
 
 export function activityVerb(action: string) {
