@@ -9,10 +9,14 @@ export type Stats = {
   rideShares: number
 }
 
-export function useStats(range: StatsRange) {
+export function useStats(range: StatsRange, status = "") {
   return useQuery({
-    queryKey: ["stats", range],
-    queryFn: () => api<Stats>(`/api/v1/ops/stats?range=${range}`),
+    queryKey: ["stats", range, status],
+    queryFn: () => {
+      const params = new URLSearchParams({ range })
+      if (status) params.set("status", status)
+      return api<Stats>(`/api/v1/ops/stats?${params.toString()}`)
+    },
     placeholderData: (previous) => previous,
   })
 }

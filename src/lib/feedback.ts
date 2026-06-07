@@ -12,6 +12,8 @@ export type ReviewItem = {
   anonymous: boolean
   createdAt: string
   tripId: number
+  vehicleId: number
+  plate: string
 }
 
 export type VehicleReviews = {
@@ -23,19 +25,32 @@ export type VehicleReviews = {
 export type ReviewSort = "newest" | "oldest" | "highest" | "lowest"
 export type ReviewSince = "all" | "today" | "week" | "month"
 
+function reviewsQueryString(page: number, sort: ReviewSort, since: ReviewSince) {
+  const params = new URLSearchParams({
+    limit: String(REVIEWS_PAGE_SIZE),
+    offset: String(page * REVIEWS_PAGE_SIZE),
+    sort,
+  })
+  if (since !== "all") params.set("since", since)
+  return params.toString()
+}
+
 export function useVehicleReviews(vehicleId: number, page: number, sort: ReviewSort, since: ReviewSince) {
   return useQuery({
     queryKey: ["vehicle-reviews", vehicleId, page, sort, since],
-    queryFn: () => {
-      const params = new URLSearchParams({
-        limit: String(REVIEWS_PAGE_SIZE),
-        offset: String(page * REVIEWS_PAGE_SIZE),
-        sort,
-      })
-      if (since !== "all") params.set("since", since)
-      return api<VehicleReviews>(`/api/v1/ops/vehicles/${vehicleId}/reviews?${params.toString()}`)
-    },
+    queryFn: () =>
+      api<VehicleReviews>(`/api/v1/ops/vehicles/${vehicleId}/reviews?${reviewsQueryString(page, sort, since)}`),
     enabled: !!vehicleId,
+    placeholderData: (previous) => previous,
+  })
+}
+
+export function useUserReviews(userId: number, page: number, sort: ReviewSort, since: ReviewSince) {
+  return useQuery({
+    queryKey: ["user-reviews", userId, page, sort, since],
+    queryFn: () =>
+      api<VehicleReviews>(`/api/v1/ops/users/${userId}/reviews?${reviewsQueryString(page, sort, since)}`),
+    enabled: !!userId,
     placeholderData: (previous) => previous,
   })
 }
@@ -44,10 +59,12 @@ export type ReportListItem = {
   id: number
   kind: string
   status: string
+  body: string
   createdAt: string
   plate: string
   vehicleId: number
   passenger: string
+  reporterId: number
 }
 
 export function useVehicleReports(vehicleId: number, page: number, status: string) {
@@ -67,9 +84,9 @@ export function useVehicleReports(vehicleId: number, page: number, status: strin
   })
 }
 
-export function useReports(status: string, since: string, page: number) {
+export function useReports(status: string, since: string, page: number, userId?: number) {
   return useQuery({
-    queryKey: ["reports", status, since, page],
+    queryKey: ["reports", status, since, page, userId ?? null],
     queryFn: () => {
       const params = new URLSearchParams({
         limit: String(REPORTS_PAGE_SIZE),
@@ -77,6 +94,7 @@ export function useReports(status: string, since: string, page: number) {
       })
       if (status) params.set("status", status)
       if (since && since !== "all") params.set("since", since)
+      if (userId) params.set("userId", String(userId))
       return api<ReportListItem[]>(`/api/v1/ops/reports?${params.toString()}`)
     },
     placeholderData: (previous) => previous,
@@ -99,6 +117,7 @@ export type ReportDetail = {
   body: string
   createdAt: string
   reporter: string
+  reporterId: number
   vehicleId: number
   plate: string
   ride: { id: number; passenger: string; startedAt: string; distanceMeters: number | null; status: string }

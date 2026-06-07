@@ -10,14 +10,13 @@ import { Button } from "../components/ui/Button"
 import { Input } from "../components/ui/Input"
 import { Dialog } from "../components/ui/Dialog"
 import { StatusBadge } from "../components/StatusBadge"
-import { StatusPill } from "../components/StatusPill"
 import { StarRating } from "../components/StarRating"
 import { Pagination } from "../components/Pagination"
+import { ReportCard } from "../components/ReportCard"
 import { VehicleQR, vehicleScanUrl } from "../components/VehicleQR"
 import {
   useVehicleReviews,
   useVehicleReports,
-  formatReportKind,
   REVIEWS_PAGE_SIZE,
   VEHICLE_REPORTS_PAGE_SIZE,
   type ReviewSort,
@@ -375,18 +374,7 @@ export function VehicleDetail() {
             <ul className="mt-4 space-y-2">
               {reports.data.map((report) => (
                 <li key={report.id}>
-                  <Link
-                    to={`/reports/${report.id}`}
-                    className="flex items-center justify-between gap-2 rounded-[var(--radius)] border border-line p-3 text-sm transition-colors hover:bg-paper-deep/50"
-                  >
-                    <span className="font-medium text-ink">{formatReportKind(report.kind)}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs text-ink-faint">
-                        {new Date(report.createdAt).toLocaleDateString()}
-                      </span>
-                      <StatusPill status={report.status} />
-                    </div>
-                  </Link>
+                  <ReportCard report={report} />
                 </li>
               ))}
             </ul>

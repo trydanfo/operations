@@ -86,7 +86,15 @@ export function Reports() {
                   </Link>
                 </td>
                 <td className="px-4 py-3 font-mono text-ink-soft">{report.plate}</td>
-                <td className="px-4 py-3 text-ink-soft">{report.passenger || "—"}</td>
+                <td className="px-4 py-3">
+                  {report.reporterId ? (
+                    <Link to={`/users/${report.reporterId}`} className="text-ink-soft hover:text-danfo-deep">
+                      {report.passenger || "—"}
+                    </Link>
+                  ) : (
+                    <span className="text-ink-soft">{report.passenger || "—"}</span>
+                  )}
+                </td>
                 <td className="px-4 py-3"><StatusPill status={report.status} /></td>
                 <td className="px-4 py-3 text-ink-faint">{formatDateTime(report.createdAt)}</td>
               </tr>

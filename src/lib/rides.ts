@@ -10,6 +10,7 @@ export type RideListItem = {
   startedAt: string
   endedAt: string | null
   passenger: string
+  passengerId: number
   vehicleId: number
   plate: string
   vehicleCode: string
@@ -20,9 +21,9 @@ export type RideDetail = RideListItem & {
   reports: { id: number; kind: string; status: string }[]
 }
 
-export function useRides(page: number, status: string, since: string) {
+export function useRides(page: number, status: string, since: string, userId?: number) {
   return useQuery({
-    queryKey: ["rides", page, status, since],
+    queryKey: ["rides", page, status, since, userId ?? null],
     queryFn: () => {
       const params = new URLSearchParams({
         limit: String(RIDES_PAGE_SIZE),
@@ -30,6 +31,7 @@ export function useRides(page: number, status: string, since: string) {
       })
       if (status) params.set("status", status)
       if (since && since !== "all") params.set("since", since)
+      if (userId) params.set("userId", String(userId))
       return api<RideListItem[]>(`/api/v1/ops/rides?${params.toString()}`)
     },
     placeholderData: (previous) => previous,
@@ -40,6 +42,7 @@ export function useRide(id: string) {
   return useQuery({
     queryKey: ["ride", id],
     queryFn: () => api<RideDetail>(`/api/v1/ops/rides/${id}`),
+    enabled: !!id,
   })
 }
 

@@ -1,9 +1,9 @@
+import type { ReactNode } from "react"
 import { Link, useParams } from "react-router-dom"
-import { MapContainer, TileLayer, Polyline } from "react-leaflet"
-import "leaflet/dist/leaflet.css"
 import { useRide, formatDistance, formatDateTime, formatDuration } from "../lib/rides"
 import { formatReportKind } from "../lib/feedback"
 import { StatusPill } from "../components/StatusPill"
+import { RouteMap, parsePolyline } from "../components/RouteMap"
 
 export function RideDetail() {
   const { id } = useParams<{ id: string }>()
@@ -16,17 +16,7 @@ export function RideDetail() {
     return <p className="text-sm text-ink-soft">Ride not found.</p>
   }
 
-  let points: [number, number][] = []
-  try {
-    if (ride.routePolyline) {
-      points = (JSON.parse(ride.routePolyline) as { lat: number; lng: number }[]).map((point) => [
-        point.lat,
-        point.lng,
-      ])
-    }
-  } catch {
-    points = []
-  }
+  const points = parsePolyline(ride.routePolyline)
 
   return (
     <div>
@@ -46,29 +36,24 @@ export function RideDetail() {
       <p className="mt-1 text-sm text-ink-soft">{formatDateTime(ride.startedAt)}</p>
 
       <dl className="mt-5 grid grid-cols-3 gap-3 text-sm">
-        <Field label="Passenger" value={ride.passenger || "—"} />
+        <Field
+          label="Passenger"
+          value={
+            ride.passengerId ? (
+              <Link to={`/users/${ride.passengerId}`} className="text-ink hover:text-danfo-deep">
+                {ride.passenger || "—"}
+              </Link>
+            ) : (
+              ride.passenger || "—"
+            )
+          }
+        />
         <Field label="Distance" value={formatDistance(ride.distanceMeters)} />
         <Field label="Duration" value={formatDuration(ride.startedAt, ride.endedAt)} />
       </dl>
 
       <div className="mt-6">
-        {points.length > 1 ? (
-          <MapContainer
-            bounds={points}
-            style={{ height: "440px", width: "100%" }}
-            className="overflow-hidden rounded-[var(--radius)] border border-line"
-          >
-            <TileLayer
-              attribution="&copy; OpenStreetMap contributors"
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <Polyline positions={points} pathOptions={{ color: "#1a1710", weight: 4 }} />
-          </MapContainer>
-        ) : (
-          <div className="rounded-[var(--radius)] border border-line p-10 text-center text-sm text-ink-faint">
-            No route recorded for this ride.
-          </div>
-        )}
+        <RouteMap points={points} empty="No route recorded for this ride." />
       </div>
 
       {ride.reports && ride.reports.length > 0 && (
@@ -95,7 +80,7 @@ export function RideDetail() {
   )
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+function Field({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="rounded-[var(--radius)] border border-line p-3">
       <div className="font-mono text-xs uppercase tracking-wider text-ink-faint">{label}</div>

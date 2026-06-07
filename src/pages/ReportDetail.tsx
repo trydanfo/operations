@@ -58,7 +58,15 @@ export function ReportDetail() {
         <StatusPill status={report.status} />
       </div>
       <p className="mt-1 text-sm text-ink-soft">
-        {formatDateTime(report.createdAt)} · reported by {report.reporter || "—"} ·{" "}
+        {formatDateTime(report.createdAt)} · reported by{" "}
+        {report.reporterId ? (
+          <Link to={`/users/${report.reporterId}`} className="text-ink hover:text-danfo-deep">
+            {report.reporter || "—"}
+          </Link>
+        ) : (
+          report.reporter || "—"
+        )}{" "}
+        ·{" "}
         <Link to={`/vehicles/${report.vehicleId}`} className="font-mono text-ink hover:text-danfo-deep">
           {report.plate}
         </Link>

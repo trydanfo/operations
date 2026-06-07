@@ -16,7 +16,7 @@ export function Dashboard() {
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Activity</h1>
+      <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Dashboard</h1>
       <p className="mt-1 text-sm text-ink-soft">Every staff action across the console, newest first.</p>
 
       <div className="mt-6 rounded-[var(--radius)] border border-line">

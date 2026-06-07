@@ -9,6 +9,8 @@ import { Rides } from "./pages/Rides"
 import { RideDetail } from "./pages/RideDetail"
 import { Reports } from "./pages/Reports"
 import { ReportDetail } from "./pages/ReportDetail"
+import { Users } from "./pages/Users"
+import { UserDetail } from "./pages/UserDetail"
 import { Print } from "./pages/Print"
 
 export default function App() {
@@ -29,6 +31,8 @@ export default function App() {
                 <Route path="/vehicles" element={<Vehicles />} />
                 <Route path="/vehicles/new" element={<RegisterVehicle />} />
                 <Route path="/vehicles/:id" element={<VehicleDetail />} />
+                <Route path="/users" element={<Users />} />
+                <Route path="/users/:id" element={<UserDetail />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Shell>

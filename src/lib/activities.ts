@@ -15,13 +15,6 @@ export type Activity = {
 
 export const AUDIT_PAGE_SIZE = 10
 
-export function useActivities() {
-  return useQuery({
-    queryKey: ["activities"],
-    queryFn: () => api<Activity[]>("/api/v1/ops/activities"),
-  })
-}
-
 export function useAudit(page: number) {
   return useQuery({
     queryKey: ["audit", page],

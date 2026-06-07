@@ -12,7 +12,7 @@ const statusOptions: ChipOption<string>[] = [
   { value: "", label: "All" },
   { value: "completed", label: "Completed" },
   { value: "abandoned", label: "Abandoned" },
-  { value: "tracking", label: "Live" },
+  { value: "live", label: "Live" },
 ]
 
 export function Rides() {
@@ -20,7 +20,7 @@ export function Rides() {
   const [status, setStatus] = useState("")
   const [since, setSince] = useState<StatsRange>("all")
   const { data, isLoading, error } = useRides(page, status, since)
-  const stats = useStats(since)
+  const stats = useStats(since, status)
 
   if (error instanceof ApiError && error.status === 403) {
     return <OperatorAccessRequired />
@@ -86,7 +86,15 @@ export function Rides() {
                     {ride.plate || ride.vehicleCode}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-ink-soft">{ride.passenger || "—"}</td>
+                <td className="px-4 py-3">
+                  {ride.passengerId ? (
+                    <Link to={`/users/${ride.passengerId}`} className="text-ink-soft hover:text-danfo-deep">
+                      {ride.passenger || "—"}
+                    </Link>
+                  ) : (
+                    <span className="text-ink-soft">{ride.passenger || "—"}</span>
+                  )}
+                </td>
                 <td className="px-4 py-3"><StatusPill status={ride.status} /></td>
                 <td className="px-4 py-3 text-ink-soft">{formatDistance(ride.distanceMeters)}</td>
                 <td className="px-4 py-3 text-ink-faint">{formatDateTime(ride.startedAt)}</td>
