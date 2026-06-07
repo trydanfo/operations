@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { api } from "./api"
 
-export const RIDES_PAGE_SIZE = 15
+export const RIDES_PAGE_SIZE = 10
 
 export type RideListItem = {
   id: number

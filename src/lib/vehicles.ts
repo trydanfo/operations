@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, apiUpload } from "./api"
 
-export const VEHICLES_PAGE_SIZE = 15
+export const VEHICLES_PAGE_SIZE = 10
 
 export type VehicleStatus = "active" | "suspended" | "retired"
 

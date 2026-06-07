@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "./api"
 
-export const REPORTS_PAGE_SIZE = 15
+export const REPORTS_PAGE_SIZE = 10
 export const REVIEWS_PAGE_SIZE = 10
 export const VEHICLE_REPORTS_PAGE_SIZE = 10
 
