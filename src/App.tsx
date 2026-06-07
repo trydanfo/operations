@@ -5,6 +5,8 @@ import { Dashboard } from "./pages/Dashboard"
 import { Vehicles } from "./pages/Vehicles"
 import { RegisterVehicle } from "./pages/RegisterVehicle"
 import { VehicleDetail } from "./pages/VehicleDetail"
+import { Rides } from "./pages/Rides"
+import { RideDetail } from "./pages/RideDetail"
 import { Print } from "./pages/Print"
 
 export default function App() {
@@ -18,6 +20,8 @@ export default function App() {
             <Shell>
               <Routes>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/rides" element={<Rides />} />
+                <Route path="/rides/:id" element={<RideDetail />} />
                 <Route path="/vehicles" element={<Vehicles />} />
                 <Route path="/vehicles/new" element={<RegisterVehicle />} />
                 <Route path="/vehicles/:id" element={<VehicleDetail />} />
