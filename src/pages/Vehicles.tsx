@@ -1,22 +1,24 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { useVehicles } from "../lib/vehicles"
+import { useVehicles, VEHICLES_PAGE_SIZE } from "../lib/vehicles"
 import { ApiError } from "../lib/api"
 import { Button } from "../components/ui/Button"
 import { Input } from "../components/ui/Input"
 import { StatusBadge } from "../components/StatusBadge"
+import { Pagination } from "../components/Pagination"
 import { OperatorAccessRequired } from "../components/OperatorAccessRequired"
 
 export function Vehicles() {
   const [search, setSearch] = useState("")
+  const [page, setPage] = useState(0)
   const navigate = useNavigate()
-  const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useVehicles(search)
+  const { data, isLoading, error } = useVehicles(search, page)
 
   if (error instanceof ApiError && error.status === 403) {
     return <OperatorAccessRequired />
   }
 
-  const vehicles = data?.pages.flat() ?? []
+  const vehicles = data ?? []
 
   return (
     <div>
@@ -29,7 +31,10 @@ export function Vehicles() {
         <Input
           placeholder="Search by plate…"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => {
+            setSearch(event.target.value)
+            setPage(0)
+          }}
           className="max-w-xs"
         />
       </div>
@@ -78,18 +83,7 @@ export function Vehicles() {
         </table>
       </div>
 
-      {hasNextPage && (
-        <div className="mt-4 flex justify-center">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fetchNextPage()}
-            disabled={isFetchingNextPage}
-          >
-            {isFetchingNextPage ? "Loading…" : "Load more"}
-          </Button>
-        </div>
-      )}
+      <Pagination page={page} hasNext={vehicles.length === VEHICLES_PAGE_SIZE} onChange={setPage} />
     </div>
   )
 }

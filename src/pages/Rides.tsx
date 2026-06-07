@@ -1,18 +1,20 @@
+import { useState } from "react"
 import { Link } from "react-router-dom"
-import { useRides, formatDistance } from "../lib/rides"
+import { useRides, RIDES_PAGE_SIZE, formatDistance } from "../lib/rides"
 import { ApiError } from "../lib/api"
-import { Button } from "../components/ui/Button"
 import { StatusPill } from "../components/StatusPill"
+import { Pagination } from "../components/Pagination"
 import { OperatorAccessRequired } from "../components/OperatorAccessRequired"
 
 export function Rides() {
-  const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useRides()
+  const [page, setPage] = useState(0)
+  const { data, isLoading, error } = useRides(page)
 
   if (error instanceof ApiError && error.status === 403) {
     return <OperatorAccessRequired />
   }
 
-  const rides = data?.pages.flat() ?? []
+  const rides = data ?? []
 
   return (
     <div>
@@ -58,13 +60,7 @@ export function Rides() {
         </table>
       </div>
 
-      {hasNextPage && (
-        <div className="mt-4 flex justify-center">
-          <Button variant="outline" size="sm" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
-            {isFetchingNextPage ? "Loading…" : "Load more"}
-          </Button>
-        </div>
-      )}
+      <Pagination page={page} hasNext={rides.length === RIDES_PAGE_SIZE} onChange={setPage} />
     </div>
   )
 }

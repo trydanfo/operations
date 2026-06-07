@@ -11,12 +11,36 @@ import { Input } from "../components/ui/Input"
 import { Dialog } from "../components/ui/Dialog"
 import { StatusBadge } from "../components/StatusBadge"
 import { StatusPill } from "../components/StatusPill"
-import { DashRating } from "../components/DashRating"
+import { StarRating } from "../components/StarRating"
+import { Pagination } from "../components/Pagination"
 import { VehicleQR, vehicleScanUrl } from "../components/VehicleQR"
-import { useVehicleReviews, useVehicleReports, formatReportKind } from "../lib/feedback"
+import {
+  useVehicleReviews,
+  useVehicleReports,
+  formatReportKind,
+  REVIEWS_PAGE_SIZE,
+  VEHICLE_REPORTS_PAGE_SIZE,
+  type ReviewSort,
+} from "../lib/feedback"
 import { cn } from "../lib/cn"
 
 const allStatuses: VehicleStatus[] = ["active", "suspended", "retired"]
+
+type Tab = "general" | "reviews" | "reports"
+
+const reviewSorts: { value: ReviewSort; label: string }[] = [
+  { value: "newest", label: "Newest" },
+  { value: "oldest", label: "Oldest" },
+  { value: "highest", label: "Highest rated" },
+  { value: "lowest", label: "Lowest rated" },
+]
+
+const reportStatuses: { value: string; label: string }[] = [
+  { value: "", label: "All" },
+  { value: "open", label: "Open" },
+  { value: "resolved", label: "Resolved" },
+  { value: "dismissed", label: "Dismissed" },
+]
 
 export function VehicleDetail() {
   const { id } = useParams<{ id: string }>()
@@ -24,8 +48,15 @@ export function VehicleDetail() {
   const { data: vehicle, isLoading } = useVehicle(id ?? "")
   const updateVehicle = useUpdateVehicle()
   const deleteVehicle = useDeleteVehicle()
-  const reviews = useVehicleReviews(vehicle?.publicCode ?? "")
-  const reports = useVehicleReports(vehicle?.id ?? 0)
+
+  const [tab, setTab] = useState<Tab>("general")
+  const [reviewPage, setReviewPage] = useState(0)
+  const [reviewSort, setReviewSort] = useState<ReviewSort>("newest")
+  const [reportPage, setReportPage] = useState(0)
+  const [reportStatus, setReportStatus] = useState("")
+
+  const reviews = useVehicleReviews(vehicle?.publicCode ?? "", reviewPage, reviewSort)
+  const reports = useVehicleReports(vehicle?.id ?? 0, reportPage, reportStatus)
 
   const [editingPlate, setEditingPlate] = useState(false)
   const [plateDraft, setPlateDraft] = useState("")
@@ -64,163 +95,219 @@ export function VehicleDetail() {
         ← vehicles
       </Link>
 
-      <div className="mt-4 grid gap-10 sm:grid-cols-2">
-        <div>
-          {editingPlate ? (
-            <form onSubmit={savePlate} className="flex items-center gap-2">
-              <Input
-                autoFocus
-                value={plateDraft}
-                onChange={(event) => setPlateDraft(event.target.value)}
-                className="max-w-[12rem]"
-              />
-              <Button type="submit" size="sm" disabled={updateVehicle.isPending}>
-                Save
-              </Button>
-              <Button type="button" size="sm" variant="ghost" onClick={() => setEditingPlate(false)}>
-                Cancel
-              </Button>
-            </form>
-          ) : (
-            <div className="flex items-center gap-3">
-              <h1 className="font-display text-2xl font-bold tracking-tight text-ink">
-                {vehicle.plateNumber}
-              </h1>
-              <button
-                onClick={() => {
-                  setPlateDraft(vehicle.plateNumber)
-                  setEditingPlate(true)
-                }}
-                className="font-mono text-xs text-ink-faint hover:text-danfo-deep"
-              >
-                edit
-              </button>
-            </div>
-          )}
+      <div className="mt-4 flex items-center gap-3">
+        {editingPlate ? (
+          <form onSubmit={savePlate} className="flex items-center gap-2">
+            <Input
+              autoFocus
+              value={plateDraft}
+              onChange={(event) => setPlateDraft(event.target.value)}
+              className="max-w-[12rem]"
+            />
+            <Button type="submit" size="sm" disabled={updateVehicle.isPending}>
+              Save
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => setEditingPlate(false)}>
+              Cancel
+            </Button>
+          </form>
+        ) : (
+          <>
+            <h1 className="font-display text-2xl font-bold tracking-tight text-ink">
+              {vehicle.plateNumber}
+            </h1>
+            <button
+              onClick={() => {
+                setPlateDraft(vehicle.plateNumber)
+                setEditingPlate(true)
+              }}
+              className="font-mono text-xs text-ink-faint hover:text-danfo-deep"
+            >
+              edit
+            </button>
+          </>
+        )}
+        <StatusBadge status={vehicle.status} />
+      </div>
 
-          {updateVehicle.isError && (
-            <p className="mt-2 text-sm text-danfo-deep">{(updateVehicle.error as Error).message}</p>
-          )}
+      {updateVehicle.isError && (
+        <p className="mt-2 text-sm text-danfo-deep">{(updateVehicle.error as Error).message}</p>
+      )}
 
-          <div className="mt-2">
-            <StatusBadge status={vehicle.status} />
-          </div>
+      <div className="mt-6 flex items-center gap-6 border-b border-line">
+        <TabButton label="General" active={tab === "general"} onClick={() => setTab("general")} />
+        <TabButton
+          label={`Reviews${reviews.data ? ` (${reviews.data.count})` : ""}`}
+          active={tab === "reviews"}
+          onClick={() => setTab("reviews")}
+        />
+        <TabButton label="Reports" active={tab === "reports"} onClick={() => setTab("reports")} />
+      </div>
 
-          <dl className="mt-6 space-y-3 text-sm">
-            <div className="flex items-center justify-between border-b border-line pb-2">
-              <dt className="text-ink-faint">Public code</dt>
-              <dd className="font-mono text-ink">{vehicle.publicCode}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-4 border-b border-line pb-2">
-              <dt className="text-ink-faint">Scan URL</dt>
-              <dd className="truncate font-mono text-ink-soft">{vehicleScanUrl(vehicle.publicCode)}</dd>
-            </div>
-            {vehicle.plateState && (
+      {tab === "general" && (
+        <div className="mt-6 grid gap-10 sm:grid-cols-2">
+          <div>
+            <dl className="space-y-3 text-sm">
               <div className="flex items-center justify-between border-b border-line pb-2">
-                <dt className="text-ink-faint">State</dt>
-                <dd className="text-ink-soft">{vehicle.plateState}</dd>
+                <dt className="text-ink-faint">Public code</dt>
+                <dd className="font-mono text-ink">{vehicle.publicCode}</dd>
+              </div>
+              <div className="flex items-center justify-between gap-4 border-b border-line pb-2">
+                <dt className="text-ink-faint">Scan URL</dt>
+                <dd className="truncate font-mono text-ink-soft">{vehicleScanUrl(vehicle.publicCode)}</dd>
+              </div>
+              {vehicle.plateState && (
+                <div className="flex items-center justify-between border-b border-line pb-2">
+                  <dt className="text-ink-faint">State</dt>
+                  <dd className="text-ink-soft">{vehicle.plateState}</dd>
+                </div>
+              )}
+              <div className="flex items-center justify-between border-b border-line pb-2">
+                <dt className="text-ink-faint">Registered</dt>
+                <dd className="text-ink-soft">{new Date(vehicle.createdAt).toLocaleDateString()}</dd>
+              </div>
+            </dl>
+
+            {vehicle.imageUrl && (
+              <div className="mt-6">
+                <button
+                  onClick={() => setShowImage((value) => !value)}
+                  className="font-mono text-xs text-ink-faint transition-colors hover:text-ink"
+                >
+                  {showImage ? "▾ hide plate photo" : "▸ show plate photo"}
+                </button>
+                {showImage && (
+                  <img
+                    src={vehicle.imageUrl}
+                    alt="plate"
+                    className="mt-3 w-full max-w-sm rounded-[var(--radius)] border border-line"
+                  />
+                )}
               </div>
             )}
-            <div className="flex items-center justify-between border-b border-line pb-2">
-              <dt className="text-ink-faint">Registered</dt>
-              <dd className="text-ink-soft">{new Date(vehicle.createdAt).toLocaleDateString()}</dd>
-            </div>
-          </dl>
 
-          {vehicle.imageUrl && (
-            <div className="mt-6">
+            <div className="mt-6 flex flex-wrap gap-2">
+              {otherStatuses.map((status) => (
+                <Button
+                  key={status}
+                  variant="outline"
+                  size="sm"
+                  disabled={updateVehicle.isPending}
+                  onClick={() => updateVehicle.mutate({ id: vehicle.id, status })}
+                >
+                  Mark {status}
+                </Button>
+              ))}
+            </div>
+
+            <div className="mt-10 border-t border-line pt-4">
               <button
-                onClick={() => setShowImage((value) => !value)}
-                className="font-mono text-xs text-ink-faint transition-colors hover:text-ink"
+                onClick={() => setConfirmingDelete(true)}
+                className="text-sm text-ink-faint transition-colors hover:text-red-600"
               >
-                {showImage ? "▾ hide plate photo" : "▸ show plate photo"}
+                Delete vehicle
               </button>
-              {showImage && (
-                <img
-                  src={vehicle.imageUrl}
-                  alt="plate"
-                  className="mt-3 w-full max-w-sm rounded-[var(--radius)] border border-line"
-                />
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center gap-4 rounded-[var(--radius)] border border-line p-6">
+            <VehicleQR publicCode={vehicle.publicCode} />
+            <div className="text-center">
+              <div className="font-mono text-sm font-medium text-ink">{vehicle.plateNumber}</div>
+              <div className="font-mono text-xs text-ink-faint">{vehicle.publicCode}</div>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => navigate(`/print?ids=${vehicle.id}`)}>
+              Print sticker
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {tab === "reviews" && (
+        <div className="mt-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              {reviews.data && reviews.data.count > 0 ? (
+                <>
+                  <StarRating value={Math.round(reviews.data.average)} />
+                  <span className="text-sm text-ink-soft">
+                    {reviews.data.average.toFixed(1)} · {reviews.data.count} review
+                    {reviews.data.count === 1 ? "" : "s"}
+                  </span>
+                </>
+              ) : (
+                <span className="text-sm text-ink-faint">No reviews yet.</span>
               )}
             </div>
+            <select
+              value={reviewSort}
+              onChange={(event) => {
+                setReviewSort(event.target.value as ReviewSort)
+                setReviewPage(0)
+              }}
+              className="rounded-[var(--radius)] border border-line bg-paper px-3 py-1.5 text-sm text-ink"
+            >
+              {reviewSorts.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {reviews.data && reviews.data.reviews.length > 0 && (
+            <ul className="mt-4 space-y-2">
+              {reviews.data.reviews.map((review, index) => (
+                <li key={index} className="rounded-[var(--radius)] border border-line p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span
+                      className={cn(
+                        "text-sm font-medium text-ink",
+                        review.anonymous && "select-none blur-[3px]",
+                      )}
+                    >
+                      {review.reviewer}
+                    </span>
+                    <StarRating value={review.rating} />
+                  </div>
+                  {review.body && <p className="mt-1.5 text-sm text-ink-soft">{review.body}</p>}
+                </li>
+              ))}
+            </ul>
           )}
 
-          <div className="mt-6 flex flex-wrap gap-2">
-            {otherStatuses.map((status) => (
-              <Button
-                key={status}
-                variant="outline"
-                size="sm"
-                disabled={updateVehicle.isPending}
-                onClick={() => updateVehicle.mutate({ id: vehicle.id, status })}
+          <Pagination
+            page={reviewPage}
+            hasNext={(reviews.data?.reviews.length ?? 0) === REVIEWS_PAGE_SIZE}
+            onChange={setReviewPage}
+          />
+        </div>
+      )}
+
+      {tab === "reports" && (
+        <div className="mt-6">
+          <div className="flex flex-wrap items-center gap-2">
+            {reportStatuses.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => {
+                  setReportStatus(option.value)
+                  setReportPage(0)
+                }}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs transition-colors",
+                  reportStatus === option.value
+                    ? "border-ink bg-ink text-paper"
+                    : "border-line text-ink-soft hover:border-ink/40",
+                )}
               >
-                Mark {status}
-              </Button>
+                {option.label}
+              </button>
             ))}
           </div>
 
-          <div className="mt-10 border-t border-line pt-4">
-            <button
-              onClick={() => setConfirmingDelete(true)}
-              className="text-sm text-ink-faint transition-colors hover:text-red-600"
-            >
-              Delete vehicle
-            </button>
-          </div>
-        </div>
-
-        <div className="flex flex-col items-center gap-4 rounded-[var(--radius)] border border-line p-6">
-          <VehicleQR publicCode={vehicle.publicCode} />
-          <div className="text-center">
-            <div className="font-mono text-sm font-medium text-ink">{vehicle.plateNumber}</div>
-            <div className="font-mono text-xs text-ink-faint">{vehicle.publicCode}</div>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => navigate(`/print?ids=${vehicle.id}`)}>
-            Print sticker
-          </Button>
-        </div>
-      </div>
-
-      <div className="mt-10 grid gap-8 sm:grid-cols-2">
-        <section>
-          <h2 className="font-mono text-xs uppercase tracking-wider text-ink-faint">Reviews</h2>
-          {reviews.data && reviews.data.count > 0 ? (
-            <>
-              <div className="mt-2 flex items-center gap-2">
-                <DashRating value={Math.round(reviews.data.average)} />
-                <span className="text-sm text-ink-soft">
-                  {reviews.data.average.toFixed(1)} · {reviews.data.count} review
-                  {reviews.data.count === 1 ? "" : "s"}
-                </span>
-              </div>
-              <ul className="mt-3 space-y-2">
-                {reviews.data.reviews.map((review, index) => (
-                  <li key={index} className="rounded-[var(--radius)] border border-line p-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <span
-                        className={cn(
-                          "text-sm font-medium text-ink",
-                          review.anonymous && "select-none blur-[3px]",
-                        )}
-                      >
-                        {review.reviewer}
-                      </span>
-                      <DashRating value={review.rating} />
-                    </div>
-                    {review.body && <p className="mt-1.5 text-sm text-ink-soft">{review.body}</p>}
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : (
-            <p className="mt-2 text-sm text-ink-faint">No reviews yet.</p>
-          )}
-        </section>
-
-        <section>
-          <h2 className="font-mono text-xs uppercase tracking-wider text-ink-faint">Reports</h2>
           {reports.data && reports.data.length > 0 ? (
-            <ul className="mt-3 space-y-2">
+            <ul className="mt-4 space-y-2">
               {reports.data.map((report) => (
                 <li key={report.id}>
                   <Link
@@ -239,10 +326,16 @@ export function VehicleDetail() {
               ))}
             </ul>
           ) : (
-            <p className="mt-2 text-sm text-ink-faint">No reports.</p>
+            <p className="mt-4 text-sm text-ink-faint">No reports.</p>
           )}
-        </section>
-      </div>
+
+          <Pagination
+            page={reportPage}
+            hasNext={(reports.data?.length ?? 0) === VEHICLE_REPORTS_PAGE_SIZE}
+            onChange={setReportPage}
+          />
+        </div>
+      )}
 
       <Dialog
         open={confirmingDelete}
@@ -265,5 +358,19 @@ export function VehicleDetail() {
         </div>
       </Dialog>
     </div>
+  )
+}
+
+function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "-mb-px border-b-2 pb-2 text-sm transition-colors",
+        active ? "border-danfo text-ink" : "border-transparent text-ink-soft hover:text-ink",
+      )}
+    >
+      {label}
+    </button>
   )
 }

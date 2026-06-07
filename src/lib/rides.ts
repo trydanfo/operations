@@ -1,7 +1,7 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { api } from "./api"
 
-export const RIDES_PAGE_SIZE = 50
+export const RIDES_PAGE_SIZE = 15
 
 export type RideListItem = {
   id: number
@@ -20,14 +20,11 @@ export type RideDetail = RideListItem & {
   reports: { id: number; kind: string; status: string }[]
 }
 
-export function useRides() {
-  return useInfiniteQuery({
-    queryKey: ["rides"],
-    initialPageParam: 0,
-    queryFn: ({ pageParam }) =>
-      api<RideListItem[]>(`/api/v1/ops/rides?limit=${RIDES_PAGE_SIZE}&offset=${pageParam}`),
-    getNextPageParam: (lastPage, allPages) =>
-      lastPage.length === RIDES_PAGE_SIZE ? allPages.length * RIDES_PAGE_SIZE : undefined,
+export function useRides(page: number) {
+  return useQuery({
+    queryKey: ["rides", page],
+    queryFn: () => api<RideListItem[]>(`/api/v1/ops/rides?limit=${RIDES_PAGE_SIZE}&offset=${page * RIDES_PAGE_SIZE}`),
+    placeholderData: (previous) => previous,
   })
 }
 

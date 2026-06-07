@@ -1,18 +1,20 @@
+import { useState } from "react"
 import { Link } from "react-router-dom"
-import { useReports, useReportCounts, formatReportKind } from "../lib/feedback"
+import { useReports, useReportCounts, REPORTS_PAGE_SIZE, formatReportKind } from "../lib/feedback"
 import { ApiError } from "../lib/api"
-import { Button } from "../components/ui/Button"
+import { Pagination } from "../components/Pagination"
 import { OperatorAccessRequired } from "../components/OperatorAccessRequired"
 
 export function Reports() {
+  const [page, setPage] = useState(0)
   const counts = useReportCounts()
-  const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useReports("open")
+  const { data, isLoading, error } = useReports("open", page)
 
   if (error instanceof ApiError && error.status === 403) {
     return <OperatorAccessRequired />
   }
 
-  const reports = data?.pages.flat() ?? []
+  const reports = data ?? []
 
   return (
     <div>
@@ -59,13 +61,7 @@ export function Reports() {
         </table>
       </div>
 
-      {hasNextPage && (
-        <div className="mt-4 flex justify-center">
-          <Button variant="outline" size="sm" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
-            {isFetchingNextPage ? "Loading…" : "Load more"}
-          </Button>
-        </div>
-      )}
+      <Pagination page={page} hasNext={reports.length === REPORTS_PAGE_SIZE} onChange={setPage} />
     </div>
   )
 }

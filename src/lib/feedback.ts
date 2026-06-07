@@ -1,5 +1,9 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "./api"
+
+export const REPORTS_PAGE_SIZE = 15
+export const REVIEWS_PAGE_SIZE = 10
+export const VEHICLE_REPORTS_PAGE_SIZE = 10
 
 export type ReviewItem = {
   rating: number
@@ -15,11 +19,17 @@ export type VehicleReviews = {
   reviews: ReviewItem[]
 }
 
-export function useVehicleReviews(code: string) {
+export type ReviewSort = "newest" | "oldest" | "highest" | "lowest"
+
+export function useVehicleReviews(code: string, page: number, sort: ReviewSort) {
   return useQuery({
-    queryKey: ["vehicle-reviews", code],
-    queryFn: () => api<VehicleReviews>(`/api/v1/vehicles/by-code/${code}/reviews`),
+    queryKey: ["vehicle-reviews", code, page, sort],
+    queryFn: () =>
+      api<VehicleReviews>(
+        `/api/v1/vehicles/by-code/${code}/reviews?limit=${REVIEWS_PAGE_SIZE}&offset=${page * REVIEWS_PAGE_SIZE}&sort=${sort}`,
+      ),
     enabled: !!code,
+    placeholderData: (previous) => previous,
   })
 }
 
@@ -33,27 +43,35 @@ export type ReportListItem = {
   passenger: string
 }
 
-export const REPORTS_PAGE_SIZE = 50
-
-export function useVehicleReports(vehicleId: number) {
+export function useVehicleReports(vehicleId: number, page: number, status: string) {
   return useQuery({
-    queryKey: ["vehicle-reports", vehicleId],
-    queryFn: () => api<ReportListItem[]>(`/api/v1/ops/reports?vehicleId=${vehicleId}`),
-    enabled: !!vehicleId,
-  })
-}
-
-export function useReports(status?: string) {
-  return useInfiniteQuery({
-    queryKey: ["reports", status ?? ""],
-    initialPageParam: 0,
-    queryFn: ({ pageParam }) => {
-      const params = new URLSearchParams({ limit: String(REPORTS_PAGE_SIZE), offset: String(pageParam) })
+    queryKey: ["vehicle-reports", vehicleId, page, status],
+    queryFn: () => {
+      const params = new URLSearchParams({
+        vehicleId: String(vehicleId),
+        limit: String(VEHICLE_REPORTS_PAGE_SIZE),
+        offset: String(page * VEHICLE_REPORTS_PAGE_SIZE),
+      })
       if (status) params.set("status", status)
       return api<ReportListItem[]>(`/api/v1/ops/reports?${params.toString()}`)
     },
-    getNextPageParam: (lastPage, allPages) =>
-      lastPage.length === REPORTS_PAGE_SIZE ? allPages.length * REPORTS_PAGE_SIZE : undefined,
+    enabled: !!vehicleId,
+    placeholderData: (previous) => previous,
+  })
+}
+
+export function useReports(status: string, page: number) {
+  return useQuery({
+    queryKey: ["reports", status, page],
+    queryFn: () => {
+      const params = new URLSearchParams({
+        limit: String(REPORTS_PAGE_SIZE),
+        offset: String(page * REPORTS_PAGE_SIZE),
+      })
+      if (status) params.set("status", status)
+      return api<ReportListItem[]>(`/api/v1/ops/reports?${params.toString()}`)
+    },
+    placeholderData: (previous) => previous,
   })
 }
 

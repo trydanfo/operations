@@ -1,7 +1,7 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, apiUpload } from "./api"
 
-export const VEHICLES_PAGE_SIZE = 50
+export const VEHICLES_PAGE_SIZE = 15
 
 export type VehicleStatus = "active" | "suspended" | "retired"
 
@@ -31,16 +31,14 @@ export type PlateScan = {
   existingVehicle?: ExistingVehicle
 }
 
-export function useVehicles(search: string) {
-  return useInfiniteQuery({
-    queryKey: ["vehicles", search],
-    initialPageParam: 0,
-    queryFn: ({ pageParam }) =>
+export function useVehicles(search: string, page: number) {
+  return useQuery({
+    queryKey: ["vehicles", search, page],
+    queryFn: () =>
       api<Vehicle[]>(
-        `/api/v1/ops/vehicles?search=${encodeURIComponent(search)}&limit=${VEHICLES_PAGE_SIZE}&offset=${pageParam}`,
+        `/api/v1/ops/vehicles?search=${encodeURIComponent(search)}&limit=${VEHICLES_PAGE_SIZE}&offset=${page * VEHICLES_PAGE_SIZE}`,
       ),
-    getNextPageParam: (lastPage, allPages) =>
-      lastPage.length === VEHICLES_PAGE_SIZE ? allPages.length * VEHICLES_PAGE_SIZE : undefined,
+    placeholderData: (previous) => previous,
   })
 }
 

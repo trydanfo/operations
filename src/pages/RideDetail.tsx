@@ -51,27 +51,6 @@ export function RideDetail() {
         <Field label="Duration" value={formatDuration(ride.startedAt, ride.endedAt)} />
       </dl>
 
-      {ride.reports && ride.reports.length > 0 && (
-        <div className="mt-5">
-          <h2 className="font-mono text-xs uppercase tracking-wider text-ink-faint">
-            Reports on this ride
-          </h2>
-          <ul className="mt-2 space-y-2">
-            {ride.reports.map((report) => (
-              <li key={report.id}>
-                <Link
-                  to={`/reports/${report.id}`}
-                  className="flex items-center justify-between rounded-[var(--radius)] border border-line p-3 text-sm transition-colors hover:bg-paper-deep/50"
-                >
-                  <span className="font-medium text-ink">{formatReportKind(report.kind)}</span>
-                  <StatusPill status={report.status} />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       <div className="mt-6">
         {points.length > 1 ? (
           <MapContainer
@@ -91,6 +70,27 @@ export function RideDetail() {
           </div>
         )}
       </div>
+
+      {ride.reports && ride.reports.length > 0 && (
+        <div className="mt-6">
+          <h2 className="font-mono text-xs uppercase tracking-wider text-ink-faint">
+            Reports on this ride
+          </h2>
+          <ul className="mt-2 space-y-2">
+            {ride.reports.map((report) => (
+              <li key={report.id}>
+                <Link
+                  to={`/reports/${report.id}`}
+                  className="flex items-center justify-between rounded-[var(--radius)] border border-line p-3 text-sm transition-colors hover:bg-paper-deep/50"
+                >
+                  <span className="font-medium text-ink">{formatReportKind(report.kind)}</span>
+                  <StatusPill status={report.status} />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }
