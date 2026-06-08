@@ -14,6 +14,7 @@ import { StarRating } from "../components/StarRating"
 import { Pagination } from "../components/Pagination"
 import { ReportCard } from "../components/ReportCard"
 import { BackLink } from "../components/BackLink"
+import { VehicleLocationPanel } from "../components/VehicleLocationPanel"
 import { VehicleQR, vehicleScanUrl } from "../components/VehicleQR"
 import {
   useVehicleReviews,
@@ -184,6 +185,8 @@ export function VehicleDetail() {
         />
         <TabButton label="Reports" active={tab === "reports"} onClick={() => setTab("reports")} />
       </div>
+
+      {tab === "general" && <VehicleLocationPanel vehicleId={vehicle.id} />}
 
       {tab === "general" && (
         <div className="mt-6 grid gap-10 sm:grid-cols-2">

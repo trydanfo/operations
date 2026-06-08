@@ -57,6 +57,22 @@ export function useVehicle(id: string) {
   })
 }
 
+export type VehicleLocation = {
+  source: "live" | "last_ride" | "none"
+  lat?: number
+  lng?: number
+  at?: string
+  tripId?: number
+}
+
+export function useVehicleLocation(id: string) {
+  return useQuery({
+    queryKey: ["vehicle-location", id],
+    queryFn: () => api<VehicleLocation>(`/api/v1/ops/vehicles/${id}/location`),
+    enabled: !!id,
+  })
+}
+
 export function useVehicleByPlate(plate: string) {
   const trimmed = plate.trim()
   return useQuery({
