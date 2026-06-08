@@ -12,6 +12,7 @@ import {
 } from "../lib/feedback"
 import { ApiError } from "../lib/api"
 import { Avatar } from "../components/Avatar"
+import { BackLink } from "../components/BackLink"
 import { StarRating } from "../components/StarRating"
 import { StatusPill } from "../components/StatusPill"
 import { Pagination } from "../components/Pagination"
@@ -62,9 +63,7 @@ export function UserDetail() {
 
   return (
     <div>
-      <Link to="/users" className="font-mono text-xs text-ink-faint hover:text-ink">
-        ← users
-      </Link>
+      <BackLink />
 
       <div className="mt-4 flex items-center gap-4">
         <Avatar src={user.profilePicture} name={userDisplayName(user)} size={56} />

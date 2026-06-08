@@ -1,6 +1,7 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { Camera } from "lucide-react"
+import { BackLink } from "../components/BackLink"
 import {
   useScanPlate,
   useRegisterVehicle,
@@ -138,9 +139,7 @@ export function RegisterVehicle() {
 
   return (
     <div className="max-w-md">
-      <Link to="/vehicles" className="font-mono text-xs text-ink-faint hover:text-ink">
-        ← vehicles
-      </Link>
+      <BackLink />
       <h1 className="mt-4 font-display text-2xl font-bold tracking-tight text-ink">Register vehicles</h1>
       <p className="mt-1 text-sm text-ink-soft">Snap the plate, confirm the read, register. Repeat.</p>
 

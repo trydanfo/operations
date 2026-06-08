@@ -5,6 +5,7 @@ import { formatDateTime, formatDistance } from "../lib/rides"
 import { StatusPill } from "../components/StatusPill"
 import { Button } from "../components/ui/Button"
 import { Dialog } from "../components/ui/Dialog"
+import { BackLink } from "../components/BackLink"
 import { useToast } from "../lib/toast"
 
 const actionVerb: Record<string, string> = {
@@ -47,9 +48,7 @@ export function ReportDetail() {
 
   return (
     <div className="max-w-2xl">
-      <Link to="/reports" className="font-mono text-xs text-ink-faint hover:text-ink">
-        ← reports
-      </Link>
+      <BackLink />
 
       <div className="mt-4 flex items-center justify-between gap-4">
         <h1 className="font-display text-2xl font-bold tracking-tight text-ink">

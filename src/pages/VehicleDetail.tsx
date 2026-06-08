@@ -13,6 +13,7 @@ import { StatusBadge } from "../components/StatusBadge"
 import { StarRating } from "../components/StarRating"
 import { Pagination } from "../components/Pagination"
 import { ReportCard } from "../components/ReportCard"
+import { BackLink } from "../components/BackLink"
 import { VehicleQR, vehicleScanUrl } from "../components/VehicleQR"
 import {
   useVehicleReviews,
@@ -133,9 +134,7 @@ export function VehicleDetail() {
 
   return (
     <div>
-      <Link to="/vehicles" className="font-mono text-xs text-ink-faint hover:text-ink">
-        ← vehicles
-      </Link>
+      <BackLink />
 
       <div className="mt-4 flex items-center gap-3">
         {editingPlate ? (

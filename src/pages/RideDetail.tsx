@@ -4,6 +4,7 @@ import { useRide, formatDistance, formatDateTime, formatDuration } from "../lib/
 import { formatReportKind } from "../lib/feedback"
 import { StatusPill } from "../components/StatusPill"
 import { RouteMap, parsePolyline } from "../components/RouteMap"
+import { BackLink } from "../components/BackLink"
 
 export function RideDetail() {
   const { id } = useParams<{ id: string }>()
@@ -20,9 +21,7 @@ export function RideDetail() {
 
   return (
     <div>
-      <Link to="/rides" className="font-mono text-xs text-ink-faint hover:text-ink">
-        ← rides
-      </Link>
+      <BackLink />
 
       <div className="mt-4 flex items-center justify-between gap-4">
         <Link
