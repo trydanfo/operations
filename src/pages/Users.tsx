@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
-import { useUsers, userDisplayName, USERS_PAGE_SIZE } from "../lib/users"
+import { useUsers, useUserCounts, userDisplayName, USERS_PAGE_SIZE } from "../lib/users"
 import { ApiError } from "../lib/api"
 import { Input } from "../components/ui/Input"
 import { Pagination } from "../components/Pagination"
@@ -11,6 +11,7 @@ export function Users() {
   const [search, setSearch] = useState("")
   const [page, setPage] = useState(0)
   const { data, isLoading, error } = useUsers(search, page)
+  const counts = useUserCounts()
 
   if (error instanceof ApiError && error.status === 403) {
     return <OperatorAccessRequired />
@@ -20,8 +21,18 @@ export function Users() {
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Users</h1>
-      <p className="mt-1 text-sm text-ink-soft">Riders and staff on the network.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Users</h1>
+          <p className="mt-1 text-sm text-ink-soft">Riders and staff on the network.</p>
+        </div>
+        <div className="text-right">
+          <div className="font-display text-2xl font-bold text-ink">
+            {(counts.data?.total ?? 0).toLocaleString()}
+          </div>
+          <div className="font-mono text-xs uppercase tracking-wider text-ink-faint">total users</div>
+        </div>
+      </div>
 
       <div className="mt-6">
         <Input

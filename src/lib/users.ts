@@ -40,3 +40,10 @@ export function useUser(id: string) {
     queryFn: () => api<UserDetail>(`/api/v1/ops/users/${id}`),
   })
 }
+
+export function useUserCounts() {
+  return useQuery({
+    queryKey: ["user-counts"],
+    queryFn: () => api<{ total: number }>("/api/v1/ops/user-counts"),
+  })
+}
