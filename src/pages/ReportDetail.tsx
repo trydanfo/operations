@@ -127,6 +127,23 @@ export function ReportDetail() {
         )}
       </div>
 
+      <section className="mt-8">
+        <h2 className="font-mono text-xs uppercase tracking-wider text-ink-faint">The ride</h2>
+        <Link
+          to={`/rides/${report.ride.id}`}
+          className="mt-3 block rounded-[var(--radius)] border border-line p-4 transition-colors hover:bg-paper-deep/50"
+        >
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-sm font-medium text-ink">{report.ride.passenger || "—"}</span>
+            <StatusPill status={report.ride.status} />
+          </div>
+          <p className="mt-1 text-sm text-ink-soft">
+            {formatDateTime(report.ride.startedAt)} · {formatDistance(report.ride.distanceMeters)}
+          </p>
+          <p className="mt-1 font-mono text-xs text-danfo-deep">view ride →</p>
+        </Link>
+      </section>
+
       <section className="mt-8 rounded-[var(--radius)] border border-line p-4">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -180,23 +197,6 @@ export function ReportDetail() {
             </Button>
           )}
         </div>
-      </section>
-
-      <section className="mt-10">
-        <h2 className="font-mono text-xs uppercase tracking-wider text-ink-faint">The ride</h2>
-        <Link
-          to={`/rides/${report.ride.id}`}
-          className="mt-3 block rounded-[var(--radius)] border border-line p-4 transition-colors hover:bg-paper-deep/50"
-        >
-          <div className="flex items-center justify-between gap-4">
-            <span className="text-sm font-medium text-ink">{report.ride.passenger || "—"}</span>
-            <StatusPill status={report.ride.status} />
-          </div>
-          <p className="mt-1 text-sm text-ink-soft">
-            {formatDateTime(report.ride.startedAt)} · {formatDistance(report.ride.distanceMeters)}
-          </p>
-          <p className="mt-1 font-mono text-xs text-danfo-deep">view ride →</p>
-        </Link>
       </section>
 
       <Dialog
