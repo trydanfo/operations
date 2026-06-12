@@ -1,6 +1,6 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
-import { useReport, useUpdateReportStatus, formatReportKind } from "../lib/feedback"
+import { useReport, useUpdateReportStatus, useUpdateReportVisibility, formatReportKind } from "../lib/feedback"
 import { formatDateTime, formatDistance } from "../lib/rides"
 import { StatusPill } from "../components/StatusPill"
 import { Button } from "../components/ui/Button"
@@ -18,8 +18,15 @@ export function ReportDetail() {
   const { id } = useParams<{ id: string }>()
   const { data: report, isLoading } = useReport(id ?? "")
   const update = useUpdateReportStatus()
+  const visibility = useUpdateReportVisibility()
   const toast = useToast()
   const [pending, setPending] = useState<string | null>(null)
+  const [note, setNote] = useState("")
+
+  // seed the note editor from the report once it loads
+  useEffect(() => {
+    if (report) setNote(report.publicNote ?? "")
+  }, [report?.id])
 
   if (isLoading) {
     return <p className="font-mono text-sm text-ink-faint">loading…</p>
@@ -42,6 +49,33 @@ export function ReportDetail() {
           toast((mutationError as Error).message || "Could not update report", "error")
           setPending(null)
         },
+      },
+    )
+  }
+
+  function setPublished(next: boolean) {
+    if (!report) return
+    const trimmed = note.trim()
+    if (next && !trimmed) {
+      toast("Add a public note before publishing", "error")
+      return
+    }
+    visibility.mutate(
+      { id: report.id, public: next, publicNote: trimmed },
+      {
+        onSuccess: () => toast(next ? "Published to vehicle profile" : "Unpublished", "success"),
+        onError: (mutationError) => toast((mutationError as Error).message || "Could not update", "error"),
+      },
+    )
+  }
+
+  function saveNote() {
+    if (!report) return
+    visibility.mutate(
+      { id: report.id, public: report.public, publicNote: note.trim() },
+      {
+        onSuccess: () => toast("Public note saved", "success"),
+        onError: (mutationError) => toast((mutationError as Error).message || "Could not save note", "error"),
       },
     )
   }
@@ -92,6 +126,61 @@ export function ReportDetail() {
           </Button>
         )}
       </div>
+
+      <section className="mt-8 rounded-[var(--radius)] border border-line p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="font-mono text-xs uppercase tracking-wider text-ink-faint">Public profile</h2>
+            <p className="mt-1 text-sm text-ink-soft">
+              {report.public
+                ? "Visible to riders on this vehicle's public page."
+                : "Private — only the team can see this report."}
+            </p>
+          </div>
+          <span
+            className={
+              "shrink-0 rounded-sm border px-2 py-0.5 text-[11px] font-bold uppercase " +
+              (report.public
+                ? "border-danfo/40 bg-danfo/10 text-danfo-deep"
+                : "border-line bg-ink/5 text-ink-faint")
+            }
+          >
+            {report.public ? "Public" : "Private"}
+          </span>
+        </div>
+
+        <label className="mt-4 block text-xs font-medium text-ink-soft">
+          Public note — shown to riders instead of the raw report
+        </label>
+        <textarea
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          maxLength={500}
+          rows={3}
+          placeholder="Write a short, factual note for riders…"
+          className="mt-1.5 w-full resize-none rounded-[var(--radius)] border border-line bg-paper px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-danfo/50 focus:outline-none"
+        />
+        <p className="mt-1 text-[11px] text-ink-faint">
+          The rider&rsquo;s raw words are never shown publicly — only this note.
+        </p>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {report.public ? (
+            <>
+              <Button size="sm" variant="outline" disabled={visibility.isPending} onClick={saveNote}>
+                Save note
+              </Button>
+              <Button size="sm" variant="ghost" disabled={visibility.isPending} onClick={() => setPublished(false)}>
+                Unpublish
+              </Button>
+            </>
+          ) : (
+            <Button size="sm" disabled={visibility.isPending} onClick={() => setPublished(true)}>
+              Publish to profile
+            </Button>
+          )}
+        </div>
+      </section>
 
       <section className="mt-10">
         <h2 className="font-mono text-xs uppercase tracking-wider text-ink-faint">The ride</h2>

@@ -60,6 +60,8 @@ export type ReportListItem = {
   kind: string
   status: string
   body: string
+  public: boolean
+  publicNote: string
   createdAt: string
   plate: string
   vehicleId: number
@@ -115,6 +117,8 @@ export type ReportDetail = {
   kind: string
   status: string
   body: string
+  public: boolean
+  publicNote: string
   createdAt: string
   reporter: string
   reporterId: number
@@ -139,6 +143,23 @@ export function useUpdateReportStatus() {
       queryClient.invalidateQueries({ queryKey: ["report", String(variables.id)] })
       queryClient.invalidateQueries({ queryKey: ["reports"] })
       queryClient.invalidateQueries({ queryKey: ["report-counts"] })
+      queryClient.invalidateQueries({ queryKey: ["vehicle-reports"] })
+    },
+  })
+}
+
+// publish/unpublish a report to the vehicle's public profile + edit its ops-authored note
+export function useUpdateReportVisibility() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, public: isPublic, publicNote }: { id: number; public: boolean; publicNote: string }) =>
+      api(`/api/v1/ops/reports/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ public: isPublic, publicNote }),
+      }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["report", String(variables.id)] })
+      queryClient.invalidateQueries({ queryKey: ["reports"] })
       queryClient.invalidateQueries({ queryKey: ["vehicle-reports"] })
     },
   })
