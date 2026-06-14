@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react"
 import { useNavigate } from "react-router-dom"
-import { Camera } from "lucide-react"
+import { Camera, Check, QrCode, X } from "lucide-react"
 import { BackLink } from "../components/BackLink"
 import {
   useScanPlate,
@@ -9,11 +9,15 @@ import {
   type Vehicle,
   type ExistingVehicle,
 } from "../lib/vehicles"
+import { useLookupTag, parseTagCode } from "../lib/tags"
+import { TagScanner } from "../components/TagScanner"
 import { useDebouncedValue } from "../lib/useDebouncedValue"
 import { useToast } from "../lib/toast"
 import { Button } from "../components/ui/Button"
 import { Input } from "../components/ui/Input"
 import { cn } from "../lib/cn"
+
+type TagStatus = "idle" | "checking" | "valid" | "invalid"
 
 type SessionEntry = { id: number; plateNumber: string; publicCode: string }
 
@@ -61,9 +65,22 @@ export function RegisterVehicle() {
   const scan = useScanPlate()
   const register = useRegisterVehicle()
 
+  const [tagCode, setTagCode] = useState("")
+  const [scanning, setScanning] = useState(false)
+
   const debouncedPlate = useDebouncedValue(plateNumber, 400)
   const plateLookup = useVehicleByPlate(debouncedPlate)
   const existing = plateLookup.data?.existingVehicle ?? null
+
+  // codes are minted lowercase, so normalize what the operator types/scans before lookup and submit
+  const normalizedTag = tagCode.trim().toLowerCase()
+  const debouncedTag = useDebouncedValue(normalizedTag, 400)
+  const tagLookup = useLookupTag(debouncedTag)
+  const tagEntered = normalizedTag.length > 0
+  const tagChecking = tagEntered && (tagLookup.isFetching || normalizedTag !== debouncedTag)
+  const tagValid = tagEntered && !tagChecking && !!tagLookup.data
+  const tagOk = !tagEntered || tagValid
+  const tagStatus: TagStatus = !tagEntered ? "idle" : tagChecking ? "checking" : tagValid ? "valid" : "invalid"
 
   // NOTE: a low-confidence read must be eyeballed — editing the plate or ticking the box clears the gate
   const needsCheck = confidence === "low" && !plateChecked
@@ -102,16 +119,17 @@ export function RegisterVehicle() {
     setPlateState("")
     setOcrError("")
     setPlateChecked(false)
+    setTagCode("")
     scan.reset()
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
   function doRegister(image?: File) {
     const plate = plateNumber.trim()
-    if (!plate || existing) return
+    if (!plate || existing || !tagOk) return
 
     register.mutate(
-      { plateNumber: plate, plateState: plateState || undefined, image },
+      { plateNumber: plate, plateState: plateState || undefined, image, tagCode: normalizedTag || undefined },
       {
         onSuccess: (vehicle: Vehicle) => {
           toast(`Registered ${vehicle.plateNumber}`, "success")
@@ -166,10 +184,13 @@ export function RegisterVehicle() {
           </div>
 
           {existing && <ExistingNotice existing={existing} onOpen={() => navigate(`/vehicles/${existing.id}`)} />}
+
+          <AttachTagField value={tagCode} onChange={setTagCode} onScan={() => setScanning(true)} status={tagStatus} />
+
           {register.isError && <p className="text-sm text-danfo-deep">{(register.error as Error).message}</p>}
 
           <div className="flex gap-2">
-            <Button type="submit" disabled={!plateNumber.trim() || register.isPending || !!existing}>
+            <Button type="submit" disabled={!plateNumber.trim() || register.isPending || !!existing || !tagOk}>
               {register.isPending ? "Registering…" : "Register"}
             </Button>
             <Button
@@ -266,12 +287,14 @@ export function RegisterVehicle() {
                 </label>
               )}
 
+              <AttachTagField value={tagCode} onChange={setTagCode} onScan={() => setScanning(true)} status={tagStatus} />
+
               {register.isError && <p className="text-sm text-danfo-deep">{(register.error as Error).message}</p>}
 
               <div className="flex gap-2">
                 <Button
                   type="submit"
-                  disabled={!plateNumber.trim() || register.isPending || !!existing || needsCheck}
+                  disabled={!plateNumber.trim() || register.isPending || !!existing || needsCheck || !tagOk}
                 >
                   {register.isPending ? "Registering…" : "Register"}
                 </Button>
@@ -324,6 +347,56 @@ export function RegisterVehicle() {
           </ul>
         </div>
       )}
+
+      {scanning && (
+        <TagScanner
+          onResult={(text) => {
+            setTagCode(parseTagCode(text))
+            setScanning(false)
+          }}
+          onClose={() => setScanning(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+function AttachTagField({
+  value,
+  onChange,
+  onScan,
+  status,
+}: {
+  value: string
+  onChange: (value: string) => void
+  onScan: () => void
+  status: TagStatus
+}) {
+  return (
+    <div>
+      <label className="font-mono text-xs uppercase tracking-wider text-ink-faint">Attach tag (optional)</label>
+      <div className="mt-1.5 flex gap-2">
+        <div className="relative flex-1">
+          <Input
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder="type or scan code"
+            className="pr-9"
+          />
+          {status !== "idle" && (
+            <span className="absolute right-3 top-1/2 -translate-y-1/2">
+              {status === "checking" && <span className="font-mono text-xs text-ink-faint">…</span>}
+              {status === "valid" && <Check className="h-4 w-4 text-danfo-deep" />}
+              {status === "invalid" && <X className="h-4 w-4 text-red-600" />}
+            </span>
+          )}
+        </div>
+        <Button type="button" variant="outline" onClick={onScan} aria-label="Scan tag QR">
+          <QrCode className="h-4 w-4" />
+        </Button>
+      </div>
+      {status === "valid" && <p className="mt-1 text-xs text-danfo-deep">Tag found — goes live on this vehicle.</p>}
+      {status === "invalid" && <p className="mt-1 text-xs text-red-600">No unused tag with that code.</p>}
     </div>
   )
 }

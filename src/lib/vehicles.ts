@@ -110,15 +110,18 @@ export function useRegisterVehicle() {
       plateNumber,
       plateState,
       image,
+      tagCode,
     }: {
       plateNumber: string
       plateState?: string
       image?: File
+      tagCode?: string
     }) => {
       const form = new FormData()
       form.append("plateNumber", plateNumber)
       if (plateState) form.append("plateState", plateState)
       if (image) form.append("image", image)
+      if (tagCode) form.append("tagCode", tagCode)
       return apiUpload<Vehicle>("/api/v1/ops/vehicles", form)
     },
     onSuccess: () => invalidateVehicleViews(queryClient),

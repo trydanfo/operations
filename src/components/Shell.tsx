@@ -23,6 +23,7 @@ export function Shell({ children }: { children: ReactNode }) {
               <NavItem to="/rides" label="Rides" />
               <NavItem to="/reports" label="Reports" />
               <NavItem to="/vehicles" label="Vehicles" />
+              <NavItem to="/tags" label="Tags" />
               <NavItem to="/users" label="Users" />
             </nav>
           </div>

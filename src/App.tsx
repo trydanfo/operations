@@ -12,12 +12,15 @@ import { ReportDetail } from "./pages/ReportDetail"
 import { Users } from "./pages/Users"
 import { UserDetail } from "./pages/UserDetail"
 import { Print } from "./pages/Print"
+import { TagPrint } from "./pages/TagPrint"
+import { GenerateTags } from "./pages/GenerateTags"
 
 export default function App() {
   return (
     <RequireAuth>
       <Routes>
         <Route path="/print" element={<Print />} />
+        <Route path="/print-tags" element={<TagPrint />} />
         <Route
           path="/*"
           element={
@@ -30,6 +33,7 @@ export default function App() {
                 <Route path="/reports/:id" element={<ReportDetail />} />
                 <Route path="/vehicles" element={<Vehicles />} />
                 <Route path="/vehicles/new" element={<RegisterVehicle />} />
+                <Route path="/tags" element={<GenerateTags />} />
                 <Route path="/vehicles/:id" element={<VehicleDetail />} />
                 <Route path="/users" element={<Users />} />
                 <Route path="/users/:id" element={<UserDetail />} />
