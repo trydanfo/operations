@@ -30,10 +30,13 @@ export function GenerateTags() {
     )
   }
 
-  function printAll() {
-    const codes = (tags.data ?? []).map((tag) => tag.code)
+  function printCodes(codes: string[]) {
     if (codes.length === 0) return
     navigate(`/print-tags?codes=${codes.join(",")}`)
+  }
+
+  function printAll() {
+    printCodes((tags.data ?? []).map((tag) => tag.code))
   }
 
   const list = tags.data ?? []
@@ -94,7 +97,13 @@ export function GenerateTags() {
       ) : (
         <ul className="mt-4 divide-y divide-line rounded-[var(--radius)] border border-line">
           {list.map((tag) => (
-            <TagRow key={tag.id} tag={tag} onDelete={() => remove.mutate(tag.id)} deleting={remove.isPending} />
+            <TagRow
+              key={tag.id}
+              tag={tag}
+              onDelete={() => remove.mutate(tag.id)}
+              onPrint={() => printCodes([tag.code])}
+              deleting={remove.isPending}
+            />
           ))}
         </ul>
       )}
@@ -102,7 +111,17 @@ export function GenerateTags() {
   )
 }
 
-function TagRow({ tag, onDelete, deleting }: { tag: Tag; onDelete: () => void; deleting: boolean }) {
+function TagRow({
+  tag,
+  onDelete,
+  onPrint,
+  deleting,
+}: {
+  tag: Tag
+  onDelete: () => void
+  onPrint: () => void
+  deleting: boolean
+}) {
   return (
     <li className="flex items-center gap-4 px-4 py-3">
       <VehicleQR publicCode={tag.code} size={48} />
@@ -113,6 +132,14 @@ function TagRow({ tag, onDelete, deleting }: { tag: Tag; onDelete: () => void; d
           {formatDateTime(tag.createdAt)}
         </div>
       </div>
+      <button
+        type="button"
+        onClick={onPrint}
+        aria-label={`Print tag ${tag.code}`}
+        className="text-ink-faint transition-colors hover:text-ink"
+      >
+        <Printer className="h-4 w-4" />
+      </button>
       <button
         type="button"
         onClick={onDelete}

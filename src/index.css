@@ -1,5 +1,39 @@
 @import "tailwindcss";
 
+/* Sticker-only faces, self-hosted so the printed tag renders identically offline and in every
+   browser's print pipeline. All three are OFL — licenses live beside the files in public/fonts. */
+@font-face {
+  font-family: "Aspekta";
+  src: url("/fonts/Aspekta-900.woff2") format("woff2");
+  font-weight: 900;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Aspekta";
+  src: url("/fonts/Aspekta-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Anton";
+  src: url("/fonts/Anton-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Open Runde";
+  src: url("/fonts/OpenRunde-Semibold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: block;
+}
+
 @theme {
   --color-paper: #f5f1e6;
   --color-paper-deep: #ece6d6;
@@ -13,6 +47,17 @@
   --font-display: "Hanken Grotesk", system-ui, sans-serif;
   --font-body: "Hanken Grotesk", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --font-sticker: "Aspekta", "Hanken Grotesk", system-ui, sans-serif;
+  --font-sticker-badge: "Anton", "Hanken Grotesk", system-ui, sans-serif;
+  --font-sticker-url: "Open Runde", "Hanken Grotesk", system-ui, sans-serif;
+
+  /* Sticker palette, lifted straight from the Figma frame. */
+  --color-sticker-bg: #ffdb38;
+  --color-sticker-ink: #211d07;
+  --color-sticker-olive: #645616;
+  --color-sticker-brown: #694500;
+  --color-sticker-teal: #002b29;
 
   --radius: 0.5rem;
 }
@@ -38,5 +83,57 @@
   }
   body {
     background-color: #ffffff;
+  }
+}
+
+/* Tag sticker sheet ------------------------------------------------------------------
+   The sticker is authored at Figma's exact 830x1196 px frame and scaled to physical size
+   with a single transform, so every internal offset stays proportional and nothing has to
+   be re-measured per layout. --tag-w is the only knob the 2-up/4-up toggle turns. */
+.tag-sheet {
+  --tag-frame-w: 830;
+  --tag-frame-h: 1196;
+  --tag-scale: calc(var(--tag-w) / (var(--tag-frame-w) * 1px));
+  --tag-h: calc(var(--tag-w) * var(--tag-frame-h) / var(--tag-frame-w));
+}
+
+.tag-sticker {
+  width: var(--tag-w);
+  height: var(--tag-h);
+  overflow: hidden;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.tag-sticker-frame {
+  width: calc(var(--tag-frame-w) * 1px);
+  height: calc(var(--tag-frame-h) * 1px);
+  transform: scale(var(--tag-scale));
+  transform-origin: top left;
+}
+
+@media print {
+  /* @page size/orientation is injected by the print page itself, since it varies per layout. */
+
+  /* Printers strip background colours by default — the sticker is mostly background, so
+     force it. Without this the whole sheet prints as white paper with black type. */
+  html,
+  body,
+  .tag-sheet,
+  .tag-sticker,
+  .tag-sticker-frame,
+  .tag-sticker-frame * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .tag-sheet-page {
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .tag-sheet-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
   }
 }
