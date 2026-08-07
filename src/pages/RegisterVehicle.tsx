@@ -332,7 +332,9 @@ export function RegisterVehicle() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate(`/print?ids=${registered.map((entry) => entry.id).join(",")}`)}
+              onClick={() =>
+                navigate(`/print-tags?codes=${registered.map((entry) => entry.publicCode).join(",")}`)
+              }
             >
               Print all
             </Button>

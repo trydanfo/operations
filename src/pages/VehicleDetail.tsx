@@ -260,7 +260,11 @@ export function VehicleDetail() {
               <div className="font-mono text-sm font-medium text-ink">{vehicle.plateNumber}</div>
               <div className="font-mono text-xs text-ink-faint">{vehicle.publicCode}</div>
             </div>
-            <Button variant="outline" size="sm" onClick={() => navigate(`/print?ids=${vehicle.id}`)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(`/print-tags?codes=${vehicle.publicCode}`)}
+            >
               Print sticker
             </Button>
           </div>

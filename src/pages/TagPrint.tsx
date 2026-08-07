@@ -71,7 +71,9 @@ export function TagPrint() {
   return (
     <div className="min-h-screen bg-paper-deep">
       <div className="no-print border-b border-line bg-paper px-8 pb-5 pt-6">
-        <BackLink label="back to tags" />
+        {/* reached from the tags page, a vehicle, or registration — BackLink walks history, so the
+            label stays neutral rather than naming a screen the operator may not have come from */}
+        <BackLink />
         <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="font-display text-lg font-semibold text-ink">
