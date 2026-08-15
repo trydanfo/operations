@@ -12,6 +12,10 @@ const colors: Record<string, string> = {
   open: "bg-danfo/25 text-danfo-deep",
   resolved: "bg-green-100 text-green-700",
   dismissed: "bg-ink/10 text-ink-faint",
+  // app-feedback triage states
+  new: "bg-danfo/25 text-danfo-deep",
+  reviewed: "bg-blue-100 text-blue-700",
+  closed: "bg-ink/10 text-ink-faint",
 }
 
 export function StatusPill({ status }: { status: string }) {

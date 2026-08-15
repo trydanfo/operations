@@ -8,6 +8,8 @@ import { VehicleDetail } from "./pages/VehicleDetail"
 import { Rides } from "./pages/Rides"
 import { RideDetail } from "./pages/RideDetail"
 import { Reports } from "./pages/Reports"
+import { Feedback } from "./pages/Feedback"
+import { Scans } from "./pages/Scans"
 import { ReportDetail } from "./pages/ReportDetail"
 import { Users } from "./pages/Users"
 import { UserDetail } from "./pages/UserDetail"
@@ -29,6 +31,8 @@ export default function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/rides" element={<Rides />} />
                 <Route path="/rides/:id" element={<RideDetail />} />
+                <Route path="/scans" element={<Scans />} />
+                <Route path="/feedback" element={<Feedback />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/reports/:id" element={<ReportDetail />} />
                 <Route path="/vehicles" element={<Vehicles />} />

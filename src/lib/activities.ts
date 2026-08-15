@@ -33,6 +33,9 @@ const actionVerbs: Record<string, string> = {
   "report.resolved": "resolved a report on",
   "report.dismissed": "dismissed a report on",
   "report.reopened": "reopened a report on",
+  "feedback.reviewed": "marked feedback reviewed:",
+  "feedback.closed": "closed feedback:",
+  "feedback.reopened": "reopened feedback:",
 }
 
 export function activityVerb(action: string) {

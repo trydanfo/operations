@@ -168,3 +168,76 @@ export function useUpdateReportVisibility() {
 export function formatReportKind(kind: string): string {
   return kind.replace(/_/g, " ")
 }
+
+// ---- app feedback (distinct from reports: this is about the product, not a driver or a ride) ----
+
+export const FEEDBACK_PAGE_SIZE = 10
+
+export const feedbackKindLabels: Record<string, string> = {
+  bug: "Something's broken",
+  idea: "Idea",
+  confusing: "Confusing",
+  praise: "Praise",
+  other: "Other",
+}
+
+export type FeedbackUsage = {
+  scans: number
+  stage: string
+  lastSeen: string | null
+}
+
+export type FeedbackItem = {
+  id: number
+  kind: string
+  status: string
+  body: string
+  rating: number
+  screen: string
+  createdAt: string
+  // "Anonymous" for anyone who wasn't signed in when they sent it — and it stays that way forever,
+  // even if that device later signs up.
+  sender: string
+  senderId: number | null
+  scanId: number | null
+  usage: FeedbackUsage
+}
+
+export function useFeedback(status: string, kind: string, since: string, page: number) {
+  return useQuery({
+    queryKey: ["feedback", status, kind, since, page],
+    queryFn: () => {
+      const params = new URLSearchParams({
+        limit: String(FEEDBACK_PAGE_SIZE),
+        offset: String(page * FEEDBACK_PAGE_SIZE),
+      })
+      if (status) params.set("status", status)
+      if (kind) params.set("kind", kind)
+      if (since && since !== "all") params.set("since", since)
+      return api<FeedbackItem[]>(`/api/v1/ops/feedback?${params.toString()}`)
+    },
+    placeholderData: (previous) => previous,
+  })
+}
+
+export type FeedbackCounts = { new: number; reviewed: number; closed: number }
+
+export function useFeedbackCounts() {
+  return useQuery({
+    queryKey: ["feedback-counts"],
+    queryFn: () => api<FeedbackCounts>("/api/v1/ops/feedback-counts"),
+  })
+}
+
+export function useUpdateFeedbackStatus() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) =>
+      api(`/api/v1/ops/feedback/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["feedback"] })
+      queryClient.invalidateQueries({ queryKey: ["feedback-counts"] })
+      queryClient.invalidateQueries({ queryKey: ["audit"] })
+    },
+  })
+}

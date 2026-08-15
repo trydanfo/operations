@@ -20,9 +20,10 @@ import { ReportCard } from "../components/ReportCard"
 import { RouteMap, parsePolyline } from "../components/RouteMap"
 import { FilterChips, timeWindowOptions, type ChipOption } from "../components/FilterChips"
 import { OperatorAccessRequired } from "../components/OperatorAccessRequired"
+import { JourneyTimeline } from "../components/JourneyTimeline"
 import { cn } from "../lib/cn"
 
-type Tab = "rides" | "reviews" | "reports"
+type Tab = "rides" | "reviews" | "reports" | "journey"
 type TimeWindow = "all" | "today" | "week" | "month"
 
 const rideStatusOptions: ChipOption<string>[] = [
@@ -79,11 +80,17 @@ export function UserDetail() {
         <TabButton label={`Rides (${user.rides})`} active={tab === "rides"} onClick={() => setTab("rides")} />
         <TabButton label={`Reviews (${user.reviews})`} active={tab === "reviews"} onClick={() => setTab("reviews")} />
         <TabButton label={`Reports (${user.reports})`} active={tab === "reports"} onClick={() => setTab("reports")} />
+        <TabButton label="Journey" active={tab === "journey"} onClick={() => setTab("journey")} />
       </div>
 
       {tab === "rides" && <RidesTab userId={user.id} />}
       {tab === "reviews" && <ReviewsTab userId={user.id} />}
       {tab === "reports" && <ReportsTab userId={user.id} />}
+      {tab === "journey" && (
+        <div className="mt-6 rounded-[var(--radius)] border border-line px-5 py-4">
+          <JourneyTimeline userId={user.id} />
+        </div>
+      )}
     </div>
   )
 }

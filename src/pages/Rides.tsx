@@ -7,6 +7,7 @@ import { StatusPill } from "../components/StatusPill"
 import { Pagination } from "../components/Pagination"
 import { FilterChips, timeWindowOptions, type ChipOption } from "../components/FilterChips"
 import { OperatorAccessRequired } from "../components/OperatorAccessRequired"
+import { CountCard } from "../components/CountCard"
 
 const statusOptions: ChipOption<string>[] = [
   { value: "", label: "All" },
@@ -105,17 +106,6 @@ export function Rides() {
       </div>
 
       <Pagination page={page} hasNext={rides.length === RIDES_PAGE_SIZE} onChange={setPage} />
-    </div>
-  )
-}
-
-function CountCard({ label, value, accent }: { label: string; value?: number; accent?: boolean }) {
-  return (
-    <div className="rounded-[var(--radius)] border border-line p-5">
-      <div className="font-mono text-xs uppercase tracking-wider text-ink-faint">{label}</div>
-      <div className={accent ? "mt-3 font-display text-3xl font-bold text-danfo-deep" : "mt-3 font-display text-3xl font-bold text-ink"}>
-        {(value ?? 0).toLocaleString()}
-      </div>
     </div>
   )
 }
