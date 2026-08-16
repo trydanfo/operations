@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, apiUpload } from "./api"
+import { forgetTag } from "./tags"
 
 export const VEHICLES_PAGE_SIZE = 10
 
@@ -124,7 +125,22 @@ export function useRegisterVehicle() {
       if (tagCode) form.append("tagCode", tagCode)
       return apiUpload<Vehicle>("/api/v1/ops/vehicles", form)
     },
-    onSuccess: () => invalidateVehicleViews(queryClient),
+    onSuccess: (_vehicle, { tagCode }) => {
+      invalidateVehicleViews(queryClient)
+      // Registering consumes the tag — the server deletes it in the same transaction — so every
+      // cached view of that scanned code is wrong the moment this lands: the "still in the field"
+      // list would keep printing it, and the form's lookup would keep answering ✓ for a code that
+      // no longer exists.
+      if (tagCode) forgetTag(queryClient, tagCode)
+    },
+    onError: (_error, { tagCode }) => {
+      // The failure we most expect here is the tag being claimed by another operator between this
+      // form's lookup and this submit — the server answers 409 for exactly that. Since the cached ✓
+      // is what let the operator submit a dead code, drop it on any failed registration rather than
+      // reading the status: forgetting only forces the next check to ask the server, so it is safe
+      // when the error had nothing to do with the tag.
+      if (tagCode) forgetTag(queryClient, tagCode)
+    },
   })
 }
 

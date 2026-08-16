@@ -14,26 +14,36 @@ export function TagScanner({ onResult, onClose }: { onResult: (text: string) => 
 
   useEffect(() => {
     const scanner = new Html5Qrcode(SCAN_REGION_ID, false)
-    scanner
+    let closed = false
+
+    // Kept as a promise so teardown can wait for the camera to actually be up before stopping it.
+    const started = scanner
       .start(
         { facingMode: "environment" },
         { fps: 10, qrbox: 220 },
         (decodedText) => {
-          if (handledRef.current) return
+          if (closed || handledRef.current) return
           handledRef.current = true
           onResultRef.current(decodedText)
         },
         () => {},
       )
-      .catch(() => {
-        // camera blocked or unavailable — the operator can close and type the code instead
-      })
+      .then(() => true)
+      .catch(() => false) // camera blocked or unavailable — the operator can close and type the code instead
 
     return () => {
-      scanner
-        .stop()
-        .then(() => scanner.clear())
-        .catch(() => {})
+      closed = true
+      // stop() throws if the scanner is still starting, and the old fire-and-forget call hit exactly
+      // that on StrictMode's double-invoke and on a quick close: the throw was swallowed and the
+      // camera stayed live for the life of the tab, so the next open asked for permission again
+      // instead of reusing the grant. Waiting for start() to settle is what makes the release stick.
+      void started.then((running) => {
+        if (!running) return
+        return scanner
+          .stop()
+          .then(() => scanner.clear())
+          .catch(() => {})
+      })
     }
   }, [])
 

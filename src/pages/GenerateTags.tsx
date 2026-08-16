@@ -100,7 +100,7 @@ export function GenerateTags() {
             <TagRow
               key={tag.id}
               tag={tag}
-              onDelete={() => remove.mutate(tag.id)}
+              onDelete={() => remove.mutate({ id: tag.id, code: tag.code })}
               onPrint={() => printCodes([tag.code])}
               deleting={remove.isPending}
             />
